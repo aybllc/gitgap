@@ -342,6 +342,54 @@
       padding: 16px 8px;
       text-align: center;
     }
+    /* ── Dial hover card ── */
+    #dial-hover {
+      position: fixed;
+      left: 208px;
+      z-index: 1000;
+      width: 240px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-50%) translateX(-4px);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+    #dial-hover.visible {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+    }
+    #dial-hover .dh-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 5px;
+      line-height: 1.4;
+    }
+    #dial-hover .dh-tagline {
+      font-size: 11px;
+      color: var(--ink-3);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    #dial-hover .dh-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    #dial-hover .dh-badge {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--ink-2);
+      text-transform: capitalize;
+    }
     #main-wrap    { display: flex; flex: 1; overflow: hidden; min-height: 0; }
     #page-content { flex: 1; overflow-y: auto; min-width: 0; }
     @media (max-width: 768px) { #gap-dial { display: none; } }
@@ -368,6 +416,11 @@
   </div>
 </nav>
 
+<div id="dial-hover" aria-hidden="true">
+  <div class="dh-title"></div>
+  <div class="dh-tagline"></div>
+  <div class="dh-badges"></div>
+</div>
 <div id="main-wrap">
   <aside id="gap-dial"></aside>
   <div id="page-content">
@@ -410,6 +463,50 @@
     const s = g.cap_score != null ? g.cap_score : (g.confidence || 0);
     return Math.min(1, Math.max(0, s));
   }
+  const hoverCard  = document.getElementById('dial-hover');
+  const hoverTitle = hoverCard && hoverCard.querySelector('.dh-title');
+  const hoverTag   = hoverCard && hoverCard.querySelector('.dh-tagline');
+  const hoverBadge = hoverCard && hoverCard.querySelector('.dh-badges');
+  let   hoverTimer = null;
+
+  function showHover(g, anchorEl) {
+    if (!hoverCard) return;
+    clearTimeout(hoverTimer);
+    hoverTitle.textContent = g.gateway_term || ('#' + g.id);
+    hoverTag.textContent   = g.declaration_short
+      ? (g.declaration_short + (g.declaration_short.length >= 140 ? '…' : ''))
+      : (g.paper_title || '');
+
+    // Build discipline badges
+    hoverBadge.innerHTML = '';
+    const disciplines = new Set();
+    if (g.source_discipline) disciplines.add(g.source_discipline);
+    if (g.target_disciplines) {
+      try {
+        const td = JSON.parse(g.target_disciplines);
+        if (Array.isArray(td)) td.forEach(function (d) { disciplines.add(d); });
+      } catch (e) {}
+    }
+    disciplines.forEach(function (d) {
+      const b = document.createElement('span');
+      b.className   = 'dh-badge';
+      b.textContent = d.replace(/_/g, ' ');
+      hoverBadge.appendChild(b);
+    });
+
+    // Position: vertically centered on the hovered item
+    const rect = anchorEl.getBoundingClientRect();
+    hoverCard.style.top = (rect.top + rect.height / 2) + 'px';
+    hoverCard.classList.add('visible');
+  }
+
+  function hideHover() {
+    if (!hoverCard) return;
+    hoverTimer = setTimeout(function () {
+      hoverCard.classList.remove('visible');
+    }, 80);
+  }
+
   function buildItem(g) {
     const item = document.createElement('div');
     item.className  = 'dial-item';
@@ -427,6 +524,8 @@
     item.appendChild(label);
     item.appendChild(spike);
     item.addEventListener('click', function () { location.href = '/view/gaps/' + g.id; });
+    item.addEventListener('mouseenter', function () { showHover(g, item); });
+    item.addEventListener('mouseleave', hideHover);
     return item;
   }
   function updateCenter(container) {

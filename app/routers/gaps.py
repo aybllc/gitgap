@@ -537,11 +537,14 @@ async def gaps_dial(db: Session = Depends(get_db)):
         SELECT
             g.id,
             COALESCE(g.gateway_term, SUBSTR(g.declaration_text, 1, 40)) AS gateway_term,
+            SUBSTR(g.declaration_text, 1, 140) AS declaration_short,
             g.confidence,
             g.cap_score,
             g.keeper_verdict,
             g.source_discipline,
-            p.pub_year
+            g.target_disciplines,
+            p.pub_year,
+            p.title AS paper_title
         FROM gap_endpoints g
         LEFT JOIN papers p ON p.id = g.paper_id
         ORDER BY g.id DESC
