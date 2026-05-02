@@ -1,0 +1,163 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Workflow — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Workflow</h1>
+<p class="docs-lead">
+  The NAUGHT → CAUGHT → FOUND / REJECTED lifecycle. Every gap that enters gitgap follows
+  this path. Nothing is discarded — every state is tracked, every failed attempt preserved.
+</p>
+
+<!-- State diagram -->
+<div style="margin: 32px 0 40px; overflow-x: auto;">
+<svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg"
+     style="width:100%; max-width:720px; font-family:'DM Sans',sans-serif;">
+
+  <!-- NAUGHT -->
+  <rect x="10" y="50" width="110" height="60" rx="8" fill="#F8F7F5" stroke="#E2E0E5" stroke-width="1.5"/>
+  <text x="65" y="77" text-anchor="middle" font-size="13" font-weight="600" fill="#18171A">NAUGHT</text>
+  <text x="65" y="95" text-anchor="middle" font-size="11" fill="#76747A">declared</text>
+
+  <!-- Arrow NAUGHT → CAUGHT -->
+  <line x1="120" y1="80" x2="195" y2="80" stroke="#18171A" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- CAUGHT -->
+  <rect x="195" y="50" width="110" height="60" rx="8" fill="#F8F7F5" stroke="#E2E0E5" stroke-width="1.5"/>
+  <text x="250" y="77" text-anchor="middle" font-size="13" font-weight="600" fill="#18171A">CAUGHT</text>
+  <text x="250" y="95" text-anchor="middle" font-size="11" fill="#76747A">in progress</text>
+
+  <!-- Arrow CAUGHT → FOUND (upper) -->
+  <path d="M305 70 Q365 30 415 70" fill="none" stroke="#18171A" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="362" y="42" text-anchor="middle" font-size="10" fill="#76747A">accepted</text>
+
+  <!-- Arrow CAUGHT → REJECTED (lower) -->
+  <path d="M305 90 Q365 130 415 90" fill="none" stroke="#C0BFBF" stroke-width="1.5" marker-end="url(#arr-dim)"/>
+  <text x="362" y="128" text-anchor="middle" font-size="10" fill="#76747A">failed review</text>
+
+  <!-- FOUND -->
+  <rect x="415" y="50" width="110" height="60" rx="8" fill="#18171A" stroke="#18171A" stroke-width="1.5"/>
+  <text x="470" y="77" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">FOUND</text>
+  <text x="470" y="95" text-anchor="middle" font-size="11" fill="#C0BFBF">resolved</text>
+
+  <!-- REJECTED box — aligned -->
+  <rect x="415" y="50" width="110" height="60" rx="8" fill="#F8F7F5" stroke="#E2E0E5" stroke-width="1.5" x="600" y="50"/>
+
+  <!-- Second branch: CAUGHT → REJECTED lateral -->
+  <line x1="305" y1="80" x2="380" y2="80" stroke="#C0BFBF" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- REJECTED box -->
+  <rect x="600" y="50" width="110" height="60" rx="8" fill="#F8F7F5" stroke="#C0BFBF" stroke-width="1.5"/>
+  <text x="655" y="77" text-anchor="middle" font-size="13" font-weight="600" fill="#76747A">REJECTED</text>
+  <text x="655" y="95" text-anchor="middle" font-size="11" fill="#76747A">trail kept</text>
+
+  <!-- Arrow CAUGHT → REJECTED straight -->
+  <line x1="305" y1="80" x2="598" y2="80" stroke="#C0BFBF" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-dim)"/>
+
+  <!-- Arrowhead markers -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#18171A"/>
+    </marker>
+    <marker id="arr-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#C0BFBF"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h2>States</h2>
+
+<h3>NAUGHT</h3>
+<p>
+  A gap has been declared in a peer-reviewed paper. The pipeline extracted the declaration
+  from the discussion, limitations, or conclusions section, assigned a gateway term,
+  computed a confidence score, and added it to the index. No active resolution attempt
+  is linked yet. The gap is in its natural state — open, undirected.
+</p>
+<p>
+  NAUGHT gaps are the raw output of the ingest pipeline. They require keeper review
+  before entering the live index. A keeper reads the extracted declaration and marks
+  pass (enters the index) or fail (excluded as not a genuine gap declaration).
+</p>
+
+<h3>CAUGHT</h3>
+<p>
+  A submission has been matched to this gap. A cosmoid (unique attempt identifier) is
+  assigned. The gap is now "in play" — someone is actively working on resolving it.
+  The catch confidence (cosine similarity between the paper abstract and the gap
+  declaration) is stored as a quality signal.
+</p>
+<p>
+  CAUGHT does not mean the gap is resolved. It means the gap has an active champion.
+  The gap stays CAUGHT until the attempt either succeeds (FOUND) or fails (REJECTED).
+</p>
+
+<h3>FOUND</h3>
+<p>
+  The gap has been resolved. A paper addressing it has been accepted or published.
+  The gap lifecycle is sealed — <code>found_at</code> timestamp recorded, the resolving
+  paper's cosmoid and DOI stored. On the globe, FOUND gaps render with a gold ring.
+</p>
+
+<h3>REJECTED</h3>
+<p>
+  A resolution attempt failed peer review. This is not a dead end — it is a data point.
+  The rejected trail records:
+</p>
+<ul>
+  <li><strong>Rejection mode</strong> — why the attempt failed (methodology, scope, insufficient evidence, etc.)</li>
+  <li><strong>Rejection notes</strong> — internal editorial record</li>
+  <li><strong>Pickup instructions</strong> — what the next researcher needs to address before the gap can be closed</li>
+</ul>
+<p>
+  The pickup instructions are the critical value. The next researcher can continue from
+  exactly where the last one stopped. The trail is public. The effort is not discarded.
+</p>
+
+<div class="docs-callout">
+  See the full Rejected Trail at <a href="/view/rejected">Rejected Trail</a>.
+  Every rejection has a public entry with pickup instructions visible.
+</div>
+
+<h2>Keeper Review</h2>
+<p>
+  Keeper review is the human validation step between extraction and the live index.
+  A keeper reads each extracted declaration and makes a binary judgment:
+</p>
+<ul>
+  <li><strong>Pass</strong> — this is a genuine, specific gap declaration. Enters the live index.</li>
+  <li><strong>Fail</strong> — this is generic, speculative, or not a true gap declaration. Excluded.</li>
+</ul>
+<p>
+  The keeper is the only required human step in the gitgap pipeline. Everything else
+  is automated. Keepers can review individually at <a href="/view/gaps">Gaps</a> or
+  batch-review using the bulk select interface.
+</p>
+
+<h2>Ingest cycle</h2>
+<ol>
+  <li>PMC or OAI-PMH source → paper harvested (new or updated)</li>
+  <li>Full text parsed → abstract, methods, conclusions extracted</li>
+  <li>Gap extraction → LLM identifies declaration sentences with gateway terms</li>
+  <li>Embedding → vector generated for similarity search</li>
+  <li>Deduplication → near-identical gaps merged (cosine distance &lt; 0.10)</li>
+  <li>Discipline enrichment → source discipline, bridge potential scored</li>
+  <li>CAP score → corpus-appreciated phenomenon score computed</li>
+  <li>Keeper queue → awaiting human verdict</li>
+  <li>Live index → searchable, visible on globe</li>
+</ol>
+
+<h2>Bridge potential and Structural Holes</h2>
+<p>
+  Some gaps are addressable using techniques known in one discipline but unknown in another.
+  These are structural holes. A CS technique that solves a psychology problem is a structural
+  hole — bridge potential 0.70–1.0.
+</p>
+<p>
+  Structural holes are the highest-value gaps in the index. They don't require new science —
+  they require someone who knows both fields to recognize the transfer.
+</p>
+<p>
+  Browse structural holes at <a href="/view/holes">Structural Holes</a>.
+</p>
+{% endblock %}

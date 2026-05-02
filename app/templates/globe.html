@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gitgap — Knowledge Gap Observatory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #060B14;
+      color: #fff;
+      overflow: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Floating nav ── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0 32px;
+      display: flex; align-items: center; gap: 32px; height: 52px;
+      background: rgba(6,11,20,0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .nav-brand {
+      font-size: 15px; font-weight: 600; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-brand .doctrine {
+      font-size: 11px; font-weight: 400; color: rgba(255,255,255,0.38);
+      letter-spacing: 0.04em;
+    }
+    .nav-links { display: flex; gap: 24px; margin-left: auto; }
+    .nav-links a { font-size: 13px; color: rgba(255,255,255,0.45); font-weight: 500; }
+    .nav-links a.active, .nav-links a:hover { color: #fff; text-decoration: none; }
+
+    /* ── Full-page canvas ── */
+    #globe-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+
+    /* ── Stats strip — top right ── */
+    .globe-stats {
+      position: fixed; top: 68px; right: 32px; z-index: 50;
+      display: flex; gap: 10px;
+    }
+    .globe-stat {
+      background: rgba(6,11,20,0.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 10px 16px; text-align: right;
+    }
+    .globe-stat .val {
+      font-size: 20px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;
+    }
+    .globe-stat .lbl {
+      font-size: 10px; color: rgba(255,255,255,0.35);
+      margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+
+    /* ── Legend — bottom left ── */
+    .legend {
+      position: fixed; bottom: 32px; left: 32px; z-index: 50;
+      background: rgba(6,11,20,0.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 12px 16px;
+      max-width: 220px;
+    }
+    .legend-title {
+      font-size: 10px; color: rgba(255,255,255,0.35);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: rgba(255,255,255,0.65);
+      margin-bottom: 4px; text-transform: capitalize;
+    }
+    .legend-item:last-child { margin-bottom: 0; }
+    .legend-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Detail panel — right slide-in ── */
+    .detail-panel {
+      position: fixed; top: 52px; right: 0; bottom: 0;
+      width: 340px; z-index: 80;
+      background: rgba(6,11,20,0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255,255,255,0.1);
+      padding: 24px 20px;
+      transform: translateX(100%);
+      transition: transform 0.24s cubic-bezier(.4,0,.2,1);
+      overflow-y: auto;
+    }
+    .detail-panel.open { transform: translateX(0); }
+
+    .dp-close {
+      position: absolute; top: 16px; right: 16px;
+      background: none; border: none; color: rgba(255,255,255,0.35);
+      font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px;
+    }
+    .dp-close:hover { color: #fff; }
+
+    .dp-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; margin-bottom: 12px;
+    }
+    .dp-badge-pending { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.45); }
+    .dp-badge-pass    { background: #ffffff; color: #060B14; }
+    .dp-badge-fail    { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.25); }
+
+    .dp-term {
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.45);
+      text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px;
+    }
+    .dp-decl {
+      font-size: 13px; line-height: 1.65; color: rgba(255,255,255,0.85);
+      margin-bottom: 18px;
+      border-left: 2px solid rgba(255,255,255,0.15);
+      padding-left: 12px;
+    }
+    .dp-section {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.07em; color: rgba(255,255,255,0.28);
+      margin-bottom: 7px; margin-top: 16px;
+    }
+    .dp-disciplines {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .dp-disc-pill {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.65); font-weight: 500;
+      text-transform: capitalize;
+    }
+    .dp-bridge-bar {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    }
+    .dp-bridge-track {
+      flex: 1; height: 4px; background: rgba(255,255,255,0.1);
+      border-radius: 2px; overflow: hidden;
+    }
+    .dp-bridge-fill { height: 100%; background: #fff; border-radius: 2px; }
+    .dp-bridge-val {
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6);
+      white-space: nowrap;
+    }
+    .dp-meta {
+      font-size: 11px; color: rgba(255,255,255,0.32);
+      line-height: 1.85; margin-bottom: 6px;
+    }
+    .dp-meta span { color: rgba(255,255,255,0.6); }
+    .dp-age {
+      font-size: 11px; font-style: italic;
+      color: rgba(255,255,255,0.35); margin-bottom: 20px;
+    }
+    .dp-caught {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+      font-size: 12px; color: rgba(180,255,200,0.7);
+      padding: 8px 12px;
+      background: rgba(100,255,150,0.05);
+      border: 1px solid rgba(100,255,150,0.15);
+      border-radius: 6px;
+    }
+    .dp-cta {
+      display: block; width: 100%; padding: 11px 16px;
+      text-align: center; background: #fff; color: #060B14;
+      border-radius: 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.15s;
+    }
+    .dp-cta:hover { background: rgba(255,255,255,0.88); text-decoration: none; }
+    .dp-cta.caught-cta { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.5); }
+    .dp-cta.caught-cta:hover { background: rgba(255,255,255,0.18); }
+
+    /* ── Hint ── */
+    .globe-hint {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+      z-index: 50; font-size: 12px; color: rgba(255,255,255,0.28);
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+      white-space: nowrap;
+    }
+
+    /* ── Loading overlay ── */
+    #loading {
+      position: fixed; inset: 0; z-index: 200;
+      background: #060B14;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+      transition: opacity 0.4s;
+    }
+    #loading .loading-brand { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    #loading .loading-sub { font-size: 12px; color: rgba(255,255,255,0.3); }
+    .loading-dot {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); margin: 0 3px;
+      animation: dot-pulse 1.2s ease-in-out infinite;
+    }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(1); }
+      40% { opacity: 1; transform: scale(1.3); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading">
+  <div class="loading-brand">gitgap</div>
+  <div>
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+  </div>
+  <div class="loading-sub">loading gap observatory</div>
+</div>
+
+<!-- Floating nav -->
+<nav class="nav">
+  <div class="nav-brand">
+    gitgap <span class="doctrine">NAUGHT → CAUGHT → FOUND</span>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="active">Globe</a>
+    <a href="/view/gaps">Gaps</a>
+    <a href="/view/holes">Structural Holes</a>
+    <a href="/view/runs">Runs</a>
+    <a href="/api/docs">API</a>
+  </div>
+</nav>
+
+<!-- Stats strip -->
+<div class="globe-stats">
+  <div class="globe-stat">
+    <div class="val" id="stat-total">—</div>
+    <div class="lbl">Gaps</div>
+  </div>
+  <div class="globe-stat">
+    <div class="val" id="stat-caught">—</div>
+    <div class="lbl">Caught</div>
+  </div>
+  <div class="globe-stat">
+    <div class="val" id="stat-found" style="color: #FFCC44;">—</div>
+    <div class="lbl">Found</div>
+  </div>
+  <div class="globe-stat">
+    <div class="val" id="stat-holes">—</div>
+    <div class="lbl">Structural Holes</div>
+  </div>
+  <div class="globe-stat">
+    <div class="val" id="stat-agreed" style="color: #C8BAFF;">—</div>
+    <div class="lbl">Convergence</div>
+  </div>
+</div>
+
+<!-- Discipline legend -->
+<div class="legend" id="legend">
+  <div class="legend-title">Discipline Origin</div>
+</div>
+
+<!-- Canvas -->
+<canvas id="globe-canvas"></canvas>
+
+<!-- Detail panel -->
+<div class="detail-panel" id="detail-panel">
+  <button class="dp-close" onclick="closePanel()">×</button>
+  <div id="dp-content"></div>
+</div>
+
+<!-- Hint -->
+<div class="globe-hint" id="globe-hint">drag to rotate &nbsp;·&nbsp; click a spike to explore</div>
+
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Discipline color palette ─────────────────────────────────────────────────
+const DISC_COLORS = {
+  computer_science:         0x4A90E2,
+  neuroscience:             0xFF6B9D,
+  psychology:               0xB06AE8,
+  criminal_justice:         0xFF8C42,
+  genomics_bioinformatics:  0x4AE896,
+  geospatial:               0xE8CC4A,
+  epidemiology:             0x4AB8E8,
+  physics:                  0xE84A4A,
+  mathematics:              0xE84ACD,
+  general:                  0x909090,
+};
+const DEFAULT_COLOR = 0x556677;
+
+function hexStr(n) { return '#' + n.toString(16).padStart(6, '0'); }
+
+// ── Fibonacci sphere — uniform point distribution ────────────────────────────
+function fibDir(index, total) {
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  const y = 1 - (index / Math.max(total - 1, 1)) * 2;
+  const r = Math.sqrt(Math.max(0, 1 - y * y));
+  const theta = golden * index;
+  return new THREE.Vector3(Math.cos(theta) * r, y, Math.sin(theta) * r).normalize();
+}
+
+// ── Scene ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('globe-canvas');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x060B14);
+scene.fog = new THREE.FogExp2(0x060B14, 0.012);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 1.5, 7.5);
+
+// ── Controls ─────────────────────────────────────────────────────────────────
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.055;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.35;
+controls.minDistance = 3.8;
+controls.maxDistance = 16;
+controls.enablePan = false;
+controls.target.set(0, 0, 0);
+
+// ── Lighting ─────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x8899bb, 0.55));
+
+const sun = new THREE.DirectionalLight(0x6699ff, 1.6);
+sun.position.set(6, 10, 5);
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0xffddbb, 0.5);
+fill.position.set(-5, -4, -5);
+scene.add(fill);
+
+// ── Globe ────────────────────────────────────────────────────────────────────
+const GLOBE_R = 2.0;
+
+const globeMat = new THREE.MeshStandardMaterial({
+  color: 0x080e1c,
+  roughness: 0.9,
+  metalness: 0.1,
+});
+const globeMesh = new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, 64, 48), globeMat);
+scene.add(globeMesh);
+
+// Grid overlay
+const gridMat = new THREE.MeshBasicMaterial({
+  color: 0x1c2e4a,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.28,
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R + 0.003, 28, 20), gridMat));
+
+// ── Starfield ────────────────────────────────────────────────────────────────
+const STAR_COUNT = 1200;
+const starPos = new Float32Array(STAR_COUNT * 3);
+for (let i = 0; i < STAR_COUNT; i++) {
+  const phi   = Math.acos(2 * Math.random() - 1);
+  const theta = Math.random() * Math.PI * 2;
+  const r     = 50 + Math.random() * 30;
+  starPos[i * 3]     = Math.sin(phi) * Math.cos(theta) * r;
+  starPos[i * 3 + 1] = Math.cos(phi) * r;
+  starPos[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * r;
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
+  color: 0xffffff, size: 0.09, transparent: true, opacity: 0.55,
+  sizeAttenuation: true,
+})));
+
+// ── Raycaster ────────────────────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+raycaster.params.Mesh.threshold = 0.04;
+const mouse = new THREE.Vector2();
+const spikeMeshes = [];
+let hoveredSpike = null;
+
+// ── Gap data → spikes ────────────────────────────────────────────────────────
+const UP = new THREE.Vector3(0, 1, 0);
+
+fetch('/gaps/globe-data')
+  .then(r => r.json())
+  .then(({ gaps, total, agreed_count }) => {
+    // Stats
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-caught').textContent = gaps.filter(g => g.caught && !g.found).length;
+    document.getElementById('stat-found').textContent  = gaps.filter(g => g.found).length;
+    document.getElementById('stat-holes').textContent =
+      gaps.filter(g => g.bridge_potential != null && g.bridge_potential >= 0.5).length;
+    document.getElementById('stat-agreed').textContent = agreed_count ?? 0;
+
+    // Legend — only disciplines present in data
+    const seenDiscs = [...new Set(gaps.map(g => g.source_discipline).filter(Boolean))];
+    const legend = document.getElementById('legend');
+    for (const disc of seenDiscs) {
+      const color = DISC_COLORS[disc] || DEFAULT_COLOR;
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<div class="legend-dot" style="background:${hexStr(color)}"></div>${disc.replace(/_/g, ' ')}`;
+      legend.appendChild(item);
+    }
+
+    const N = gaps.length;
+    gaps.forEach((gap, i) => {
+      const dir = fibDir(i, N);
+      const bridge = gap.bridge_potential ?? 0;
+      const conf   = gap.confidence ?? 0.5;
+      const cap    = gap.cap_score ?? 0;   // F3-B: CAP score [0,1]
+
+      // Spike height: bridge drives most of it; CAP adds ripeness signal; confidence adds nuance
+      // F3-A: agreed-upon gaps (convergence clusters) get a taller, thicker spike
+      const agreedBoost = gap.is_agreed ? 0.30 : 0.0;
+      const spikeH = 0.20 + bridge * 0.80 + cap * 0.25 + conf * 0.12 + agreedBoost;
+      // Thicker spikes for high-bridge or agreed gaps
+      const spikeR = (bridge >= 0.7 || gap.is_agreed) ? 0.055 : 0.028;
+
+      const color = DISC_COLORS[gap.source_discipline] || DEFAULT_COLOR;
+      const emissiveLow  = new THREE.Color(color).multiplyScalar(0.18);
+      const emissiveHigh = new THREE.Color(color).multiplyScalar(0.75);
+
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        emissive: emissiveLow.clone(),
+        roughness: 0.25,
+        metalness: 0.55,
+        transparent: !gap.caught,
+        opacity: gap.caught ? 1.0 : 0.72,
+      });
+
+      const geo = new THREE.ConeGeometry(spikeR, spikeH, 7);
+      const spike = new THREE.Mesh(geo, mat);
+
+      // Place spike base at sphere surface, tip pointing outward
+      spike.position.copy(dir.clone().multiplyScalar(GLOBE_R + spikeH / 2));
+      spike.quaternion.setFromUnitVectors(UP, dir);
+
+      spike.userData.gap         = gap;
+      spike.userData.emissiveLow  = emissiveLow;
+      spike.userData.emissiveHigh = emissiveHigh;
+
+      scene.add(spike);
+      spikeMeshes.push(spike);
+
+      // State ring halo at base:
+      //   FOUND    → gold ring  (gap lifecycle complete — NAUGHT→CAUGHT→FOUND)
+      //   CAUGHT   → white ring (eaiou paper claims to resolve this)
+      //   REJECTED → dim red ring (attempt made, failed peer review)
+      if (gap.found || gap.caught || gap.rejected) {
+        let ringColor, ringEmissive, ringOpacity;
+        if (gap.found) {
+          ringColor    = 0xFFCC44;
+          ringEmissive = new THREE.Color(0xFFCC44).multiplyScalar(0.6);
+          ringOpacity  = 1.0;
+        } else if (gap.caught) {
+          ringColor    = 0xffffff;
+          ringEmissive = new THREE.Color(0xffffff).multiplyScalar(0.4);
+          ringOpacity  = 1.0;
+        } else {
+          ringColor    = 0xFF4444;
+          ringEmissive = new THREE.Color(0xFF4444).multiplyScalar(0.25);
+          ringOpacity  = 0.55;
+        }
+        const ringMat = new THREE.MeshStandardMaterial({
+          color: ringColor, emissive: ringEmissive,
+          roughness: 0.1, metalness: 0.8,
+          transparent: ringOpacity < 1.0, opacity: ringOpacity,
+        });
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(spikeR + 0.035, 0.010, 6, 18),
+          ringMat
+        );
+        ring.position.copy(dir.clone().multiplyScalar(GLOBE_R + 0.04));
+        ring.quaternion.setFromUnitVectors(UP, dir);
+        scene.add(ring);
+      }
+
+      // F3-A: Convergence ring — outer silver ring for agreed-upon clusters
+      if (gap.is_agreed) {
+        const convMat = new THREE.MeshStandardMaterial({
+          color: 0xC8BAFF,
+          emissive: new THREE.Color(0xC8BAFF).multiplyScalar(0.5),
+          roughness: 0.05,
+          metalness: 0.9,
+          transparent: false,
+          opacity: 1.0,
+        });
+        const convRing = new THREE.Mesh(
+          new THREE.TorusGeometry(spikeR + 0.072, 0.009, 6, 24),
+          convMat
+        );
+        convRing.position.copy(dir.clone().multiplyScalar(GLOBE_R + 0.04));
+        convRing.quaternion.setFromUnitVectors(UP, dir);
+        scene.add(convRing);
+      }
+    });
+
+    // Fade out loading screen
+    const loadEl = document.getElementById('loading');
+    loadEl.style.opacity = '0';
+    setTimeout(() => loadEl.style.display = 'none', 420);
+  });
+
+// ── Hover ────────────────────────────────────────────────────────────────────
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(spikeMeshes);
+
+  if (hoveredSpike) {
+    hoveredSpike.material.emissive.copy(hoveredSpike.userData.emissiveLow);
+    hoveredSpike = null;
+    canvas.style.cursor = 'default';
+  }
+  if (hits.length) {
+    hoveredSpike = hits[0].object;
+    hoveredSpike.material.emissive.copy(hoveredSpike.userData.emissiveHigh);
+    canvas.style.cursor = 'pointer';
+  }
+});
+
+// ── Click → detail panel ─────────────────────────────────────────────────────
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(spikeMeshes);
+  if (hits.length) {
+    showPanel(hits[0].object.userData.gap);
+    controls.autoRotate = false;
+    document.getElementById('globe-hint').style.opacity = '0';
+  }
+});
+
+// ── Panel render ─────────────────────────────────────────────────────────────
+function showPanel(gap) {
+  const verdict  = gap.keeper_verdict || 'pending';
+  const year     = gap.pub_year;
+  const age      = year ? (new Date().getFullYear() - year) : null;
+  const bridge   = gap.bridge_potential;
+  const srcColor = gap.source_discipline
+    ? hexStr(DISC_COLORS[gap.source_discipline] || DEFAULT_COLOR)
+    : null;
+
+  const targets = (gap.target_disciplines || [])
+    .map(t => `<span class="dp-disc-pill">${t.replace(/_/g,' ')}</span>`)
+    .join('');
+
+  let html = `
+    <span class="dp-badge dp-badge-${verdict}">${verdict}</span>
+    <div class="dp-term">${esc(gap.gateway_term || 'research gap')}</div>
+    <div class="dp-decl">${esc(gap.declaration_short)}${(gap.declaration_short || '').length >= 200 ? '…' : ''}</div>
+  `;
+
+  if (gap.source_discipline) {
+    html += `<div class="dp-section">Structural Crossing</div>
+      <div class="dp-disciplines">
+        <span class="dp-disc-pill" style="border-color:${srcColor};color:${srcColor};">
+          ${gap.source_discipline.replace(/_/g,' ')}
+        </span>
+        <span style="color:rgba(255,255,255,0.25);font-size:12px;">→</span>
+        ${targets || '<span style="color:rgba(255,255,255,0.25);font-size:11px;">uncharted</span>'}
+      </div>`;
+    if (bridge != null) {
+      html += `<div class="dp-bridge-bar">
+        <div class="dp-bridge-track">
+          <div class="dp-bridge-fill" style="width:${Math.round(bridge * 100)}%"></div>
+        </div>
+        <span class="dp-bridge-val">${Math.round(bridge * 100)}% bridge</span>
+      </div>`;
+    }
+  }
+
+  // F3-A: Convergence badge — rendered first, before lifecycle state
+  if (gap.is_agreed) {
+    html += `<div class="dp-caught" style="color: rgba(200,186,255,0.9);">
+      ✦ CONVERGENCE — agreed-upon gap (≥3 independent identifications)
+    </div>`;
+  }
+
+  if (gap.found) {
+    html += `<div class="dp-caught" style="color: rgba(255,204,68,0.85);">
+      ✓ FOUND — gap resolved and published
+      ${gap.found_paper_cosmoid ? `<br><span style="font-size:10px;opacity:.6;">cosmoid: ${gap.found_paper_cosmoid.substring(0,8)}…</span>` : ''}
+    </div>`;
+  } else if (gap.caught) {
+    html += `<div class="dp-caught">✓ CAUGHT — eaiou submission recorded</div>`;
+  } else if (gap.rejected) {
+    html += `<div class="dp-caught" style="color: rgba(255,80,80,0.7);">
+      ✗ REJECTED — prior attempt failed (${esc(gap.rejection_mode || 'reason not recorded')})
+    </div>`;
+  }
+
+  html += `<div class="dp-section">Source Paper</div>
+    <div class="dp-meta">
+      PMC${gap.pmcid}${year ? ' · ' + year : ''}
+      ${gap.title ? `<br><span>${esc(gap.title.substring(0, 90))}${gap.title.length > 90 ? '…' : ''}</span>` : ''}
+      ${gap.gap_class ? `<br>${esc(gap.gap_class)}` : ''}
+    </div>`;
+
+  if (age !== null) {
+    html += `<div class="dp-age">${age} yr${age !== 1 ? 's' : ''} unresolved</div>`;
+  }
+
+  // F3-B: CAP score badge
+  if (gap.cap_score != null) {
+    const capPct  = Math.round(gap.cap_score * 100);
+    const capHue  = Math.round(gap.cap_score * 120); // 0=red, 60=yellow, 120=green
+    html += `<div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:.05em;text-transform:uppercase;">CAP</span>
+      <div style="flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;">
+        <div style="width:${capPct}%;height:100%;background:hsl(${capHue},70%,55%);border-radius:2px;"></div>
+      </div>
+      <span style="font-size:11px;font-weight:600;color:hsl(${capHue},70%,65%);">${capPct}</span>
+    </div>`;
+  }
+
+  if (gap.found) {
+    html += `<a class="dp-cta caught-cta" href="/view/gaps/${gap.id}" style="color:rgba(255,204,68,0.7);">View FOUND Record →</a>`;
+  } else if (gap.caught) {
+    html += `<a class="dp-cta caught-cta" href="/view/gaps/${gap.id}">View Gap Record →</a>`;
+  } else {
+    html += `<a class="dp-cta" href="http://127.0.0.1:8000/author/submit?gap_id=${gap.id}">Start Investigation →</a>`;
+  }
+
+  document.getElementById('dp-content').innerHTML = html;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+window.closePanel = function() {
+  document.getElementById('detail-panel').classList.remove('open');
+  controls.autoRotate = true;
+};
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── Render loop ───────────────────────────────────────────────────────────────
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% set active = "holes" %}
+
+{% block title %}Structural Holes — gitgap{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">Structural Holes</div>
+    <div class="page-sub">Techniques from one discipline with no citation bridge to another — unappreciated crossings</div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" action="/view/holes" class="filters">
+    <select name="source">
+      <option value="" {% if not source %}selected{% endif %}>All origins</option>
+      {% for d in disciplines %}
+      <option value="{{ d }}" {% if source == d %}selected{% endif %}>{{ d | replace('_',' ') | title }}</option>
+      {% endfor %}
+    </select>
+    <select name="target">
+      <option value="" {% if not target %}selected{% endif %}>All crossings</option>
+      {% for d in disciplines %}
+      <option value="{{ d }}" {% if target == d %}selected{% endif %}>{{ d | replace('_',' ') | title }}</option>
+      {% endfor %}
+    </select>
+    <select name="min_bridge">
+      <option value="0.5" {% if min_bridge == 0.5 %}selected{% endif %}>Bridge ≥ 50%</option>
+      <option value="0.65" {% if min_bridge == 0.65 %}selected{% endif %}>Bridge ≥ 65%</option>
+      <option value="0.75" {% if min_bridge == 0.75 %}selected{% endif %}>Bridge ≥ 75%</option>
+    </select>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    {% if source or target %}
+    <a href="/view/holes" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- Count -->
+  <div style="margin-bottom:16px; font-size:13px; color:var(--ink-3);">
+    {{ holes|length }} structural hole{{ 's' if holes|length != 1 else '' }}
+    {% if source %} · origin: <strong>{{ source | replace('_',' ') }}</strong>{% endif %}
+    {% if target %} · crossing into: <strong>{{ target | replace('_',' ') }}</strong>{% endif %}
+  </div>
+
+  <!-- Cards -->
+  {% if holes %}
+  <div style="display:grid; gap:12px;">
+    {% for h in holes %}
+    <div class="card" style="padding:0; overflow:hidden;">
+
+      <!-- Header bar -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:var(--surface-2); border-bottom:1px solid var(--border);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink);">
+            {{ h.source_discipline | replace('_',' ') }}
+          </span>
+          <span style="color:var(--ink-3); font-size:13px;">→</span>
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+            {% for t in h.target_disciplines %}
+            <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--ink-2); font-weight:500; text-transform:uppercase; letter-spacing:.04em;">{{ t | replace('_',' ') }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+          <div style="text-align:right;">
+            <div style="font-size:15px; font-weight:700; color:var(--ink);">{{ (h.bridge_potential * 100)|int }}%</div>
+            <div style="font-size:10px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.04em;">bridge</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Declaration -->
+      <div style="padding:12px 16px;">
+        <p style="font-size:13px; color:var(--ink-1); line-height:1.65; margin-bottom:10px;">
+          {{ h.declaration_text[:220] }}{% if h.declaration_text|length > 220 %}…{% endif %}
+        </p>
+        <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:11px; color:var(--ink-3);">{{ h.gateway_term }}</span>
+          {% if h.gap_class %}
+          <span style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2);">{{ h.gap_class }}</span>
+          {% endif %}
+          <span style="font-size:11px; color:var(--ink-3);">PMC{{ h.pmcid }}{% if h.pub_year %} · {{ h.pub_year }}{% endif %}</span>
+          {% if h.bridge_rationale %}
+          <span style="font-size:11px; font-style:italic; color:var(--ink-3);">{{ h.bridge_rationale[:100] }}{% if h.bridge_rationale|length > 100 %}…{% endif %}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:8px 16px; background:var(--surface-2); border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <span class="badge badge-{{ h.keeper_verdict or 'pending' }}">{{ h.keeper_verdict or 'pending' }}</span>
+        <a href="/view/gaps/{{ h.id }}" class="btn btn-outline" style="padding:3px 10px; font-size:12px;">Review →</a>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div style="text-align:center; color:var(--ink-3); padding:60px 20px;">
+    No structural holes found with current filters.<br>
+    <a href="/view/holes" style="color:var(--ink-3); text-decoration:underline;">Clear filters</a> or run more ingests to grow the index.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

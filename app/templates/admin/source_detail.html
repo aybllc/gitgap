@@ -1,0 +1,316 @@
+{% extends "admin/base_admin.html" %}
+{% set admin_section = "sources" %}
+{% block title %}{{ source.name }} — Admin — gitgap{% endblock %}
+
+{% block admin_content %}
+
+{% if flash %}
+<div style="margin-bottom:16px; border-left:4px solid var(--ink); padding:8px 12px;
+            background:var(--surface); border-radius:0 6px 6px 0; font-size:13px;">
+  {{ flash }}
+</div>
+{% endif %}
+
+<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px;">
+  <div>
+    <div class="page-title">{{ source.name }}</div>
+    <div class="page-sub">
+      <code style="font-size:12px;">{{ source.slug }}</code> ·
+      {{ source.auth_type }} · {{ source.response_format }} ·
+      {{ source.rate_limit_per_sec }}/s
+    </div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <a href="{{ source.base_url }}" target="_blank" rel="noopener"
+       class="btn btn-outline" style="font-size:12px; padding:5px 12px;">
+      ↗ API Docs
+    </a>
+    <form method="post" action="/admin/sources/{{ source.id }}/delete"
+          onsubmit="return confirm('Delete {{ source.name }} and all its mappings and journals?');">
+      <button type="submit" class="btn btn-outline"
+              style="font-size:12px; padding:5px 12px; color:var(--ink-3);">Delete</button>
+    </form>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 360px; gap:28px; align-items:start;">
+
+  <!-- Main: field mappings -->
+  <div>
+
+    <!-- Env var status -->
+    <div class="card" style="margin-bottom:20px; padding:16px 20px;">
+      <div class="card-title">Credential Status</div>
+      <div style="display:flex; gap:24px; flex-wrap:wrap;">
+        {% if source.api_key_env %}
+        <div style="font-size:13px;">
+          <span style="color:var(--ink-3);">{{ source.api_key_env }}</span>
+          {% if source.api_key_ok %}
+            <span style="color:#18A34A; font-weight:600; margin-left:6px;">✓ set</span>
+          {% else %}
+            <span style="color:#C0392B; font-weight:600; margin-left:6px;">✗ missing</span>
+            <span style="font-size:11px; color:var(--ink-3); margin-left:4px;">
+              — add to .env file
+            </span>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if source.email_env %}
+        <div style="font-size:13px;">
+          <span style="color:var(--ink-3);">{{ source.email_env }}</span>
+          {% if source.email_ok %}
+            <span style="color:#18A34A; font-weight:600; margin-left:6px;">✓ set</span>
+          {% else %}
+            <span style="color:#C0392B; font-weight:600; margin-left:6px;">✗ missing</span>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if not source.api_key_env and not source.email_env %}
+        <span style="font-size:13px; color:var(--ink-3);">No credentials required.</span>
+        {% endif %}
+      </div>
+      {% if source.notes %}
+      <p style="font-size:12px; color:var(--ink-3); margin-top:10px; border-top:1px solid var(--border);
+                padding-top:10px;">{{ source.notes }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Field mappings -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h2 style="font-size:14px; font-weight:600;">Field Mappings</h2>
+      <span style="font-size:12px; color:var(--ink-3);">
+        {{ mappings|length }} rule{{ 's' if mappings|length != 1 }}
+      </span>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Source Field Path</th>
+            <th>→ Target Field</th>
+            <th>Transform</th>
+            <th>Req</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in mappings %}
+          <tr>
+            <td>
+              <code style="font-size:12px; color:var(--ink-2);">{{ m.source_field }}</code>
+            </td>
+            <td>
+              <code style="font-size:12px; color:var(--ink);">{{ m.target_table }}.{{ m.target_field }}</code>
+            </td>
+            <td style="font-size:12px; color:var(--ink-3);">{{ m.transform or '—' }}</td>
+            <td style="font-size:12px; text-align:center;">
+              {% if m.required %}<span style="color:var(--ink);">●</span>{% else %}—{% endif %}
+            </td>
+            <td style="font-size:12px; color:var(--ink-3); max-width:180px; overflow:hidden;
+                       display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;">
+              {{ m.notes or '—' }}
+            </td>
+            <td>
+              <form method="post"
+                    action="/admin/sources/{{ source.id }}/mappings/{{ m.id }}/delete"
+                    style="margin:0;"
+                    onsubmit="return confirm('Remove this mapping?');">
+                <button type="submit"
+                        style="background:none; border:none; cursor:pointer;
+                               font-size:12px; color:var(--ink-3); padding:0;">×</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="color:var(--ink-3); text-align:center; padding:24px;">
+              No field mappings yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Add mapping form -->
+    <div class="card">
+      <div class="card-title">Add Field Mapping</div>
+      <form method="post" action="/admin/sources/{{ source.id }}/mappings"
+            style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500;
+                          color:var(--ink-2); margin-bottom:5px;">
+              Source Field Path *
+              <span style="font-weight:400; color:var(--ink-3);">(JSONPath or XPath)</span>
+            </label>
+            <input type="text" name="source_field" required
+                   placeholder="documents[0].infons.journal"
+                   style="width:100%; border:1px solid var(--border); border-radius:6px;
+                          padding:7px 10px; font-size:12px; font-family:monospace;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500;
+                          color:var(--ink-2); margin-bottom:5px;">Target Field *</label>
+            <select name="target_field"
+                    style="width:100%; border:1px solid var(--border); border-radius:6px;
+                           padding:7px 10px; font-size:13px; font-family:inherit;">
+              {% for f in paper_fields %}
+              <option value="{{ f }}">papers.{{ f }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 80px; gap:12px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500;
+                          color:var(--ink-2); margin-bottom:5px;">Transform</label>
+            <select name="transform"
+                    style="width:100%; border:1px solid var(--border); border-radius:6px;
+                           padding:7px 10px; font-size:13px; font-family:inherit;">
+              {% for t in transform_options %}
+              <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500;
+                          color:var(--ink-2); margin-bottom:5px;">Default Value</label>
+            <input type="text" name="default_value" placeholder="optional"
+                   style="width:100%; border:1px solid var(--border); border-radius:6px;
+                          padding:7px 10px; font-size:13px; font-family:inherit;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500;
+                          color:var(--ink-2); margin-bottom:5px;">Required</label>
+            <select name="required"
+                    style="width:100%; border:1px solid var(--border); border-radius:6px;
+                           padding:7px 10px; font-size:13px; font-family:inherit;">
+              <option value="0">No</option>
+              <option value="1">Yes</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">Notes</label>
+          <input type="text" name="notes" placeholder="Where this field comes from"
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:13px; font-family:inherit;">
+        </div>
+        <div><button type="submit" class="btn btn-primary">Add Mapping</button></div>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Right: edit source + journals -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Edit source -->
+    <div class="card">
+      <div class="card-title">Edit Source</div>
+      <form method="post" action="/admin/sources/{{ source.id }}/edit"
+            style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">Name</label>
+          <input type="text" name="name" value="{{ source.name }}" required
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:13px; font-family:inherit;">
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">Base URL</label>
+          <input type="url" name="base_url" value="{{ source.base_url }}" required
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:12px; font-family:monospace;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500;
+                          color:var(--ink-2); margin-bottom:5px;">Auth Type</label>
+            <select name="auth_type"
+                    style="width:100%; border:1px solid var(--border); border-radius:6px;
+                           padding:7px 10px; font-size:12px; font-family:inherit;">
+              {% for a in auth_types %}
+              <option value="{{ a }}" {% if a == source.auth_type %}selected{% endif %}>{{ a }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500;
+                          color:var(--ink-2); margin-bottom:5px;">Status</label>
+            <select name="status"
+                    style="width:100%; border:1px solid var(--border); border-radius:6px;
+                           padding:7px 10px; font-size:12px; font-family:inherit;">
+              <option value="active" {% if source.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="inactive" {% if source.status == 'inactive' %}selected{% endif %}>Inactive</option>
+              <option value="error" {% if source.status == 'error' %}selected{% endif %}>Error</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">API Key Env Var</label>
+          <input type="text" name="api_key_env" value="{{ source.api_key_env or '' }}"
+                 placeholder="e.g. SPRINGER_API_KEY"
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:12px; font-family:monospace;">
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">Email Env Var</label>
+          <input type="text" name="email_env" value="{{ source.email_env or '' }}"
+                 placeholder="e.g. NCBI_EMAIL"
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:12px; font-family:monospace;">
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">Notes</label>
+          <textarea name="notes" rows="3"
+                    style="width:100%; border:1px solid var(--border); border-radius:6px;
+                           padding:7px 10px; font-size:12px; font-family:inherit; resize:vertical;">{{ source.notes or '' }}</textarea>
+        </div>
+        <div><button type="submit" class="btn btn-primary" style="font-size:12px;">Save Changes</button></div>
+      </form>
+    </div>
+
+    <!-- Journals for this source -->
+    <div class="card">
+      <div class="card-title">Journals ({{ journals|length }})</div>
+      {% if journals %}
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        {% for j in journals %}
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:8px 0; border-bottom:1px solid var(--border);">
+          <div>
+            <a href="/admin/journals/{{ j.id }}"
+               style="font-size:13px; font-weight:500;">{{ j.journal_name }}</a>
+            <div style="font-size:11px; color:var(--ink-3);">
+              {{ j.article_count }} articles ·
+              {% if j.last_reconciled %}Last: {{ j.last_reconciled[:10] }}
+              {% else %}Never reconciled{% endif %}
+            </div>
+          </div>
+          <form method="post" action="/admin/journals/{{ j.id }}/reconcile" style="margin:0;">
+            <button type="submit" class="btn btn-outline"
+                    style="font-size:11px; padding:3px 8px;">↻ Sync</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="font-size:13px; color:var(--ink-3);">
+        No journals registered for this source.
+        <a href="/admin/journals">Add journals →</a>
+      </p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Roadmap — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Roadmap</h1>
+<p class="docs-lead">
+  gitgap is in active development. The core lifecycle loop is operational.
+  The next phase focuses on scale, intelligence depth, and open platform access.
+</p>
+
+<h2>Phase 1 — Lifecycle <span class="docs-badge docs-badge-done">Complete</span></h2>
+<p>The full NAUGHT → CAUGHT → FOUND / REJECTED loop, keeper review, and gap index.</p>
+<ul>
+  <li>Gap extraction pipeline — PMC ingest, JATS parsing, LLM classification</li>
+  <li>Keeper review — individual and batch pass/fail</li>
+  <li>Globe — 3D gap visualization with lifecycle state rendering</li>
+  <li>FOUND state — gap sealing on publication with cosmoid + DOI</li>
+  <li>REJECTED trail — rejection mode, notes, pickup instructions preserved</li>
+  <li>Catch confidence — cosine similarity between submission and gap declaration</li>
+</ul>
+
+<h2>Phase 2 — Editorial Integration <span class="docs-badge docs-badge-done">Complete</span></h2>
+<p>Deep integration with the eaiou authoring layer.</p>
+<ul>
+  <li>Author submission → gap registration at seal time</li>
+  <li>Revision workflow — round tracking, editor instructions</li>
+  <li>Rejection reason capture — feeds pickup instructions into gitgap</li>
+  <li>Status machine validation — enforced transition graph</li>
+  <li>Author notifications on status change</li>
+  <li>DOI assignment on publication — Zenodo receipt as submission capstone</li>
+</ul>
+
+<h2>Phase 3 — Intelligence Depth <span class="docs-badge docs-badge-done">Complete</span></h2>
+<p>Gap intelligence beyond extraction — clustering, scoring, enrichment.</p>
+<ul>
+  <li>Discipline enrichment — source discipline, bridge potential, structural holes view</li>
+  <li>Convergence clustering — agreed-upon gaps across ≥3 papers from ≥2 sources</li>
+  <li>CAP score — Corpus-Appreciated Phenomenon score for gap ripeness</li>
+  <li>Free-text ingest — non-PMC papers (Zenodo, preprints, DOI-only)</li>
+  <li>Batch keeper review + CSV export</li>
+</ul>
+
+<h2>Phase 4 — Scale <span class="docs-badge docs-badge-progress">In Progress</span></h2>
+<p>Admin infrastructure and journal network expansion.</p>
+<ul>
+  <li>Admin interface — API sources, journal registry, reconcile log, discovery probe</li>
+  <li>OAI-PMH harvesting — per-journal endpoint, incremental sync</li>
+  <li>Journal submission queue — public request form (<a href="/docs/submit-journal">submit yours</a>)</li>
+  <li>Globe sampling — server-side max 500 gaps prioritized by bridge potential</li>
+  <li>Export API — <code>GET /gaps/export?format=csv|jsonl</code></li>
+</ul>
+
+<h2>Phase 5 — Open Platform <span class="docs-badge docs-badge-planned">Planned</span></h2>
+<p>Infrastructure for a multi-source, multi-instance gap network.</p>
+<ul>
+  <li>Discipline ontology admin — configurable discipline graph, not hardcoded markers</li>
+  <li>Vector DB migration — pgvector or Qdrant for O(log n) similarity search at scale</li>
+  <li>OpenAlex, Crossref, PLOS, Springer Nature client implementations</li>
+  <li>Field mapping engine — DB-driven parse-time field resolution</li>
+  <li>Self-hosted packaging — Docker Compose, environment template, zero-config SQLite default</li>
+  <li>Stable push API v1 — versioned, documented, external system compatible</li>
+</ul>
+
+<h2>Phase 6 — Federation <span class="docs-badge docs-badge-planned">Proposed</span></h2>
+<p>Multiple gitgap instances sharing a common gap index.</p>
+<ul>
+  <li>Instance registry — institutions run their own gitgap, contribute to shared index</li>
+  <li>Gap deduplication across instances — cosine-based merge with provenance preserved</li>
+  <li>Convergence across instances — agreed-upon gaps from multiple independent deployments</li>
+</ul>
+
+<h2>How to influence the roadmap</h2>
+<p>
+  Priority is driven by gap index size, journal coverage, and community need.
+  The current focus is on journal network expansion (Phase 4) — more journals means
+  more gaps, more convergence detection, more structural holes surfaced.
+</p>
+<ul>
+  <li><a href="/docs/submit-journal">Submit your journal</a> for aggregation</li>
+  <li>Report issues and feature requests via GitHub Issues</li>
+  <li>See <a href="/docs/open-source">Open Source</a> for how to contribute directly</li>
+</ul>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page">
+
+  <!-- Admin sub-nav -->
+  <div style="display:flex; align-items:center; gap:24px; margin-bottom:32px;
+              border-bottom:1px solid var(--border); padding-bottom:16px;">
+    <span style="font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+                 font-weight:600; color:var(--ink-3);">Admin</span>
+    <a href="/admin/"
+       style="font-size:13px; font-weight:500;
+              color: {% if admin_section == 'dashboard' %}var(--ink){% else %}var(--ink-3){% endif %};">
+      Dashboard
+    </a>
+    <a href="/admin/sources"
+       style="font-size:13px; font-weight:500;
+              color: {% if admin_section == 'sources' %}var(--ink){% else %}var(--ink-3){% endif %};">
+      API Sources
+    </a>
+    <a href="/admin/journals"
+       style="font-size:13px; font-weight:500;
+              color: {% if admin_section == 'journals' %}var(--ink){% else %}var(--ink-3){% endif %};">
+      Journals
+    </a>
+    <a href="/admin/journal-requests"
+       style="font-size:13px; font-weight:500;
+              color: {% if admin_section == 'journal-requests' %}var(--ink){% else %}var(--ink-3){% endif %};">
+      Journal Requests
+    </a>
+    <a href="/admin/env" target="_blank"
+       style="font-size:13px; font-weight:500; color:var(--ink-3); margin-left:auto;">
+      Env Check ↗
+    </a>
+  </div>
+
+  {% block admin_content %}{% endblock %}
+</div>
+{% endblock %}

@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% set active = "gaps" %}
+
+{% block title %}Gap {{ gap.id }} — gitgap{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div style="margin-bottom:16px;">
+    <a href="/view/gaps" style="font-size:13px; color:var(--ink-3);">← All Gaps</a>
+  </div>
+
+  <div class="page-header">
+    <div class="page-title" style="max-width:760px;">{{ gap.title or 'PMC' + gap.pmcid }}</div>
+    <div class="page-sub" style="margin-top:6px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <span>PMC{{ gap.pmcid }}</span>
+      {% if gap.journal %}<span>· {{ gap.journal }}</span>{% endif %}
+      {% if gap.pub_year %}<span>· {{ gap.pub_year }}</span>{% endif %}
+      {% if gap.doi %}<span>· <a href="https://doi.org/{{ gap.doi }}" style="color:var(--ink-3);">{{ gap.doi }}</a></span>{% endif %}
+    </div>
+  </div>
+
+  <div class="detail-grid">
+
+    <!-- Left: Declaration + context -->
+    <div>
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-title">Gap Declaration</div>
+        <div class="declaration-block">{{ gap.declaration_text }}</div>
+        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px;">
+          <div class="meta-row">
+            <span class="meta-key">Gateway</span>
+            <span style="font-weight:500;">{{ gap.gateway_term }}</span>
+          </div>
+          {% if gap.gap_class %}
+          <div class="meta-row">
+            <span class="meta-key">Type</span>
+            <span style="font-weight:500; text-transform:uppercase; font-size:11px; letter-spacing:.04em;">{{ gap.gap_class }}</span>
+          </div>
+          {% endif %}
+          <div class="meta-row">
+            <span class="meta-key">Section</span>
+            <span>{{ gap.section_source }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Phase</span>
+            <span>{{ gap.phase }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Confidence</span>
+            <span>{{ gap.confidence }}</span>
+          </div>
+        </div>
+      </div>
+
+      {% if gap.abstract_text %}
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-title">Abstract</div>
+        <div style="font-size:13px; color:var(--ink-2); line-height:1.7;">{{ gap.abstract_text[:800] }}{% if gap.abstract_text|length > 800 %}…{% endif %}</div>
+      </div>
+      {% endif %}
+
+      {% if gap.conclusions_text %}
+      <div class="card">
+        <div class="card-title">Conclusions / Discussion</div>
+        <div style="font-size:13px; color:var(--ink-2); line-height:1.7;">{{ gap.conclusions_text[:1200] }}{% if gap.conclusions_text|length > 1200 %}…{% endif %}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right: Keeper review + metadata -->
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Keeper Review</div>
+        <div style="font-size:13px; color:var(--ink-3); margin-bottom:14px; line-height:1.5;">
+          The Appreciated Gateway must be evaluated by a human keeper.<br>
+          Does this declaration represent a genuine open research gap?
+        </div>
+
+        {% if gap.keeper_verdict != 'pending' %}
+        <div style="margin-bottom:16px;">
+          <span class="badge badge-{{ gap.keeper_verdict }}" style="font-size:13px; padding:4px 12px;">
+            {{ gap.keeper_verdict|upper }}
+          </span>
+          <div style="font-size:12px; color:var(--ink-3); margin-top:8px;">Review recorded.</div>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/view/gaps/{{ gap.id }}/review" class="review-form" style="flex-direction:column; gap:8px;">
+          <div style="display:flex; gap:8px;">
+            <button type="submit" name="verdict" value="pass" class="btn btn-pass" style="flex:1;">
+              Pass — Genuine Gap
+            </button>
+            <button type="submit" name="verdict" value="fail" class="btn btn-fail" style="flex:1;">
+              Fail — Not a Gap
+            </button>
+          </div>
+          {% if gap.keeper_verdict != 'pending' %}
+          <div style="font-size:11px; color:var(--ink-3);">Submit again to change verdict.</div>
+          {% endif %}
+        </form>
+      </div>
+
+      {% if gap.keeper_verdict == 'pass' %}
+      <div class="card" style="margin-bottom:16px; border-color: var(--ink);">
+        <div class="card-title">Leaf Promotion</div>
+        <p style="font-size:13px; color:var(--ink-2); line-height:1.5; margin-bottom:14px;">
+          This gap has passed keeper review. It can now be promoted to an eaiou leaf
+          — a CAUGHT record anchoring original work to this gap declaration.
+        </p>
+        <a href="http://127.0.0.1:8000/author/submit?gap_id={{ gap.id }}"
+           class="btn btn-primary"
+           style="display:block; text-align:center; text-decoration:none;">
+          Promote to eaiou Leaf →
+        </a>
+        <p style="font-size:11px; color:var(--ink-3); margin-top:8px; text-align:center;">
+          Opens eaiou submit form pre-filled with this gap as the CAUGHT anchor.
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- Structural hole panel -->
+      {% if gap.source_discipline %}
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+          <span>Structural Hole</span>
+          {% if gap.bridge_potential %}
+          <span style="font-size:13px; font-weight:700; {% if gap.bridge_potential >= 0.7 %}color:var(--ink);{% else %}color:var(--ink-3);{% endif %}">
+            {{ (gap.bridge_potential * 100)|int }}% bridge
+          </span>
+          {% endif %}
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Origin</span>
+          <span style="font-weight:500; text-transform:uppercase; font-size:11px; letter-spacing:.04em;">{{ gap.source_discipline | replace('_',' ') }}</span>
+        </div>
+        {% if gap.target_disciplines %}
+        <div class="meta-row" style="align-items:flex-start;">
+          <span class="meta-key">Crossings</span>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            {% set targets = gap.target_disciplines if gap.target_disciplines is iterable and gap.target_disciplines is not string else [] %}
+            {% for t in targets %}
+            <span style="font-size:11px; font-weight:500; padding:2px 7px; border-radius:10px; background:var(--surface-2); border:1px solid var(--border); text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2);">{{ t | replace('_',' ') }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if gap.bridge_rationale %}
+        <p style="font-size:12px; color:var(--ink-3); margin-top:10px; line-height:1.5; font-style:italic;">{{ gap.bridge_rationale }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- CAUGHT / NAUGHT status -->
+      {% if gap.caught_paper_cosmoid %}
+      <div class="card" style="margin-bottom:16px; border-color: var(--ink);">
+        <div class="card-title" style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:16px;">●</span> CAUGHT
+        </div>
+        <p style="font-size:13px; color:var(--ink-2); line-height:1.5; margin-bottom:12px;">
+          This gap has been claimed by an eaiou submission.
+        </p>
+        <div class="meta-row">
+          <span class="meta-key">eaiou Paper</span>
+          <a href="http://127.0.0.1:8000/papers/cosmoid/{{ gap.caught_paper_cosmoid }}"
+             style="font-size:12px; font-family:monospace; word-break:break-all; color:var(--ink);">
+            {{ gap.caught_paper_cosmoid[:24] }}…
+          </a>
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Caught At</span>
+          <span style="font-size:12px;">{{ gap.caught_at[:10] if gap.caught_at else '—' }}</span>
+        </div>
+        {% if gap.catch_confidence is not none %}
+        <div class="meta-row" style="margin-top:10px;">
+          <span class="meta-key">Alignment</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:4px; background:var(--border); border-radius:2px; max-width:80px;">
+              <div style="height:4px; background:var(--ink); border-radius:2px; width:{{ (gap.catch_confidence * 100)|int }}%;"></div>
+            </div>
+            <span style="font-size:12px; font-weight:500;">{{ (gap.catch_confidence * 100)|int }}%</span>
+          </div>
+          <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">Abstract ↔ declaration similarity. Informational — the author drives the claim.</p>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title" style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:16px; opacity:.35;">○</span> NAUGHT — Open Opportunity
+        </div>
+        <p style="font-size:13px; color:var(--ink-3); line-height:1.5;">
+          No paper has claimed this gap. Appreciate the opportunity.
+        </p>
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-title">Provenance</div>
+        <div class="meta-row"><span class="meta-key">Gap ID</span><span>{{ gap.id }}</span></div>
+        <div class="meta-row"><span class="meta-key">Paper ID</span><span>{{ gap.paper_id }}</span></div>
+        <div class="meta-row"><span class="meta-key">PMCID</span><span>PMC{{ gap.pmcid }}</span></div>
+        <div class="meta-row">
+          <span class="meta-key">AI Check</span>
+          {% if gap.ai_flag %}
+            <span style="font-size:12px; font-weight:600; color:#A93226;">
+              ⚠ Signals detected — no usage declared
+            </span>
+          {% elif gap.ai_declared == 'yes' %}
+            <span style="font-size:12px; color:var(--ink-3);">AI-assisted (declared)</span>
+          {% elif gap.ai_detection_score is not none %}
+            <span style="font-size:12px; color:var(--ink-3);">Interrogated — no signals</span>
+          {% else %}
+            <span style="font-size:12px; color:var(--ink-3);">Pending</span>
+          {% endif %}
+        </div>
+        {% if gap.doi %}
+        <div class="meta-row"><span class="meta-key">DOI</span>
+          <a href="https://doi.org/{{ gap.doi }}" style="font-size:12px; word-break:break-all;">{{ gap.doi }}</a>
+        </div>
+        {% endif %}
+        {% if gap.pub_year %}
+        <div class="meta-row">
+          <span class="meta-key">Gap Age</span>
+          <span style="font-weight:500;">{{ 2026 - gap.pub_year }} yr unresolved</span>
+        </div>
+        {% endif %}
+        <div class="meta-row"><span class="meta-key">Detected</span><span style="font-size:12px;">{{ gap.created_at[:10] if gap.created_at else '—' }}</span></div>
+        <div class="meta-row"><span class="meta-key">Verdict</span>
+          <span class="badge badge-{{ gap.keeper_verdict or 'pending' }}">{{ gap.keeper_verdict or 'pending' }}</span>
+        </div>
+        {% if gap.gap_class %}
+        <div class="meta-row">
+          <span class="meta-key">Gap Type</span>
+          <span class="badge" style="background:var(--surface-2); color:var(--ink-2); border:1px solid var(--border); font-size:11px; padding:2px 8px; border-radius:10px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">{{ gap.gap_class }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

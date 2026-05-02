@@ -1,0 +1,152 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}AI Policy — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>AI Policy</h1>
+<p class="docs-lead">
+  All papers ingested into gitgap are interrogated for AI-generated content.
+  Non-declared = treated as AI-free. The interrogation is not punitive —
+  it is transparency infrastructure. Detection results are stored as provenance, not as exclusion gates.
+</p>
+
+<div class="docs-callout">
+  <strong>The doctrine:</strong> If a paper does not explicitly disclose AI usage,
+  it is treated as an implicit AI-free claim. All implicit AI-free claims are interrogated.
+</div>
+
+<h2>Why non-declared = AI-free</h2>
+<p>
+  Most journals and research systems have no AI disclosure field. When a paper is
+  silent on AI usage, there are two interpretations: the authors didn't use AI, or
+  the authors used AI and chose not to disclose it. There is no neutral reading of silence.
+</p>
+<p>
+  gitgap treats silence as an AI-free claim because:
+</p>
+<ul>
+  <li>It is the most defensible interpretation under academic integrity standards — disclosure is the author's obligation</li>
+  <li>It creates a consistent, auditable policy — every paper is treated the same regardless of source</li>
+  <li>It builds a provenance record that has value even when the detection result is "no signals" — the interrogation happened, the result is stored</li>
+</ul>
+
+<h2>How interrogation works</h2>
+
+<h3>Pass 1 — Disclosure scan (always runs, ~10ms)</h3>
+<p>
+  The full text is scanned for explicit AI disclosure — specific tool names and
+  explicit disclosure phrases:
+  <code>ChatGPT</code>, <code>GPT-4</code>, <code>Claude</code>,
+  <code>AI-assisted writing</code>, <code>language model was used to</code>, etc.
+</p>
+<p>
+  If disclosure is found: <code>ai_declared = 'yes'</code>. No flag is set.
+  The AI detection score is not computed — the paper has already answered the question.
+</p>
+<p>
+  Generic terms like "language model" are not in the disclosure list — papers that study
+  language models are not disclosing AI-assisted writing. Only explicit, specific tool
+  names and disclosure phrases trigger the declared state.
+</p>
+
+<h3>Pass 2 — Heuristic analysis (always runs if not declared)</h3>
+<p>
+  Four signals are scored independently and combined into a composite score:
+</p>
+<table class="docs-table">
+  <thead>
+    <tr><th>Signal</th><th>What it measures</th><th>AI pattern</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Sentence length uniformity</td>
+      <td>Coefficient of variation in sentence length across the text</td>
+      <td>AI text: CV ≈ 0.15–0.35. Human academic: CV ≈ 0.45–0.85</td>
+    </tr>
+    <tr>
+      <td>Hedge phrase density</td>
+      <td>Frequency of over-hedged language per 100 words</td>
+      <td>"it is important to note", "it should be noted", "it is evident that"</td>
+    </tr>
+    <tr>
+      <td>AI signature vocabulary</td>
+      <td>Presence of statistically AI-heavy phrases</td>
+      <td>"delve into", "underscore", "in the realm of", "as mentioned above", "pivotal role"</td>
+    </tr>
+    <tr>
+      <td>Generic transition density</td>
+      <td>Frequency of structured-list transition phrases</td>
+      <td>"furthermore,", "moreover,", "in conclusion,", "firstly,", "notably,"</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  Composite score &lt; 0.40: result recorded, no escalation, no flag.
+</p>
+
+<h3>Pass 3 — LLM escalation (when heuristic ≥ 0.40, if API key is configured)</h3>
+<p>
+  Papers that cross the heuristic threshold are escalated to an LLM judge.
+  The LLM analyzes the text holistically — not just individual signals, but the
+  overall prose character, specificity of empirical claims, and naturalness of
+  sentence variation.
+</p>
+<p>
+  The LLM result replaces the heuristic score if it is higher (the LLM has broader
+  signal coverage). The <code>method</code> field records whether LLM escalation ran.
+</p>
+<p>
+  LLM escalation is optional — if no API key is configured, the heuristic score stands.
+  This keeps the system functional in air-gapped or low-cost deployments.
+</p>
+
+<h2>What the flag means</h2>
+<p>
+  <code>ai_flag = 1</code> when: final score ≥ 0.62 AND no disclosure was found.
+</p>
+<p>
+  A flag is a transparency marker, not an exclusion gate. Flagged papers:
+</p>
+<ul>
+  <li>Remain in the gap index</li>
+  <li>Display a visible marker on the gap detail page ("⚠ AI signals detected — no usage declared")</li>
+  <li>Are queryable via the API for downstream analysis</li>
+  <li>Are not removed — the gap declaration may still be valid regardless of how the prose was written</li>
+</ul>
+<p>
+  The flag is a signal to the keeper reviewer and to downstream users.
+  A keeper can still mark a flagged gap as pass — the provenance record shows both
+  the AI detection result and the keeper's independent judgment.
+</p>
+
+<h2>What is not flagged</h2>
+<ul>
+  <li>Papers with explicit AI disclosure — these are correctly categorized as AI-assisted, not flagged</li>
+  <li>Papers with low heuristic scores — scored and stored, result is "no signals"</li>
+  <li>Papers where the gap declaration itself is strong regardless of prose quality</li>
+</ul>
+
+<h2>Retroactive interrogation</h2>
+<p>
+  Papers ingested before this system was implemented have <code>ai_interrogated_at = NULL</code>.
+  A retroactive batch run is available via the admin panel. This will process all existing
+  papers and populate detection scores — useful for establishing a baseline across the
+  existing corpus.
+</p>
+
+<h2>For journals and authors</h2>
+<p>
+  If your paper or journal uses AI-assisted writing and you want to ensure it is
+  correctly categorized rather than flagged:
+</p>
+<ul>
+  <li>Include an explicit AI disclosure in the paper text — acknowledgments, methods, or a dedicated disclosure statement</li>
+  <li>Name the specific tool used (ChatGPT, Claude, Gemini, etc.) — generic phrases are less reliably detected</li>
+  <li>When submitting via the <a href="/docs/api-ingest">API</a>, the ingest endpoint accepts a <code>ai_declared</code> field — set it to <code>"yes"</code> to bypass interrogation and record the disclosure directly</li>
+</ul>
+
+<div class="docs-callout">
+  The goal is not to penalize AI use. The goal is to make the provenance of every paper in
+  the gap index transparent and auditable. A paper that declares AI usage is as valid as one
+  that doesn't — what matters is whether the declaration matches the reality.
+</div>
+{% endblock %}

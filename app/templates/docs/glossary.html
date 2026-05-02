@@ -1,0 +1,224 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Glossary — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Glossary</h1>
+<p class="docs-lead">
+  Terms used throughout gitgap, the NAUGHT→CAUGHT→FOUND lifecycle, and the gap detection
+  pipeline. These definitions are operational — they reflect how the system uses each term,
+  which may differ from casual usage.
+</p>
+
+<h2>Lifecycle states</h2>
+
+<table class="docs-table">
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>NAUGHT</td>
+      <td>
+        A declared research gap with no active resolution attempt. A gap in its natural state —
+        extracted from a paper, indexed, awaiting a champion. NAUGHT is not a failure.
+        It is the baseline state of all identified knowledge gaps.
+      </td>
+    </tr>
+    <tr>
+      <td>CAUGHT</td>
+      <td>
+        A gap that has been matched to an active submission attempt. A cosmoid is assigned
+        at catch time. The gap is "in play." CAUGHT does not mean resolved — it means
+        someone is working on it. The catch confidence score measures how well the
+        submission abstract aligns with the gap declaration.
+      </td>
+    </tr>
+    <tr>
+      <td>FOUND</td>
+      <td>
+        A gap that has been resolved. The resolving paper has been accepted or published.
+        <code>found_at</code> timestamp is set; the paper's cosmoid and DOI are stored.
+        Lifecycle sealed. On the globe: gold ring.
+      </td>
+    </tr>
+    <tr>
+      <td>REJECTED</td>
+      <td>
+        A resolution attempt that failed peer review. The attempt is not discarded —
+        the rejection mode, internal notes, and pickup instructions are all preserved.
+        The rejected trail is public. The next researcher can continue from exactly
+        where the last one stopped.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Gap structure</h2>
+
+<table class="docs-table">
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Gap endpoint</td>
+      <td>
+        A single extracted declaration of a research gap, tied to its source paper.
+        One paper can produce multiple gap endpoints. Each endpoint is an independently
+        trackable unit with its own lifecycle state.
+      </td>
+    </tr>
+    <tr>
+      <td>Declaration text</td>
+      <td>
+        The verbatim or near-verbatim sentence(s) from the source paper that constitute
+        the gap statement. The raw signal — preserved exactly as extracted.
+      </td>
+    </tr>
+    <tr>
+      <td>Gateway term</td>
+      <td>
+        The primary disciplinary keyword that indexes the gap. Assigned by the extraction
+        pipeline. Used for search, filtering, and structural hole detection.
+        Examples: "Morton encoding", "Hubble tension", "predictive policing bias".
+      </td>
+    </tr>
+    <tr>
+      <td>Confidence</td>
+      <td>
+        0–1 score representing how clearly the extracted text constitutes a genuine gap
+        declaration. High confidence = explicit, specific, actionable declaration.
+        Low confidence = vague, generic, or ambiguous.
+      </td>
+    </tr>
+    <tr>
+      <td>Phase</td>
+      <td>
+        Internal pipeline stage. Phase 1 = extracted from full text. Phase 2 = LLM-validated.
+        Not the same as lifecycle state (NAUGHT/CAUGHT/FOUND/REJECTED).
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>People and roles</h2>
+
+<table class="docs-table">
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Keeper</td>
+      <td>
+        A human reviewer who validates extracted gaps before they enter the live index.
+        Keepers read each declaration and mark pass (genuine gap, enters index) or
+        fail (not a genuine gap, excluded). The keeper is the only required human step
+        in the pipeline.
+      </td>
+    </tr>
+    <tr>
+      <td>Cosmoid</td>
+      <td>
+        A unique identifier assigned to a submission attempt in eaiou (the authoring layer).
+        The cosmoid links a gap endpoint to a specific resolution effort — it is the
+        provenance token for "who is catching this gap, and when."
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Intelligence scores</h2>
+
+<table class="docs-table">
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Bridge potential</td>
+      <td>
+        0–1 score measuring how likely a gap is resolvable using techniques from a
+        different discipline than the one that declared it. High bridge potential = the
+        gap is a structural hole — a technique transfer opportunity.
+        Computed from source discipline × technique origin detection.
+      </td>
+    </tr>
+    <tr>
+      <td>CAP score</td>
+      <td>
+        Corpus-Appreciated Phenomenon score. Measures how "ripe" a gap is for resolution
+        based on: Existence Consensus, Measurement Stability, Explanatory Entropy,
+        Methodological Formalization, and Temporal Convergence Rate.
+        Higher CAP = more evidence, more agreement, clearer measurement path.
+      </td>
+    </tr>
+    <tr>
+      <td>Catch confidence</td>
+      <td>
+        Cosine similarity between the submission abstract and the gap declaration vector.
+        Stored at catch time. Informational — the author drives the claim, not the score.
+      </td>
+    </tr>
+    <tr>
+      <td>ADI</td>
+      <td>
+        Appreciated Duration Index. Gap age is a positive signal, not a deterrent.
+        A gap that has been open for 15 years is a compounding opportunity — 15 years
+        of other researchers failing to find a solution, which means the solution is
+        genuinely novel when found.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Architecture</h2>
+
+<table class="docs-table">
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Structural hole</td>
+      <td>
+        A gap addressable by techniques known in discipline A but not known or applied
+        in discipline B. The technique origin is the bridge. Structural holes are the
+        highest-value gaps in the index — they require no new science, only cross-disciplinary transfer.
+        Browse at <a href="/view/holes">Structural Holes</a>.
+      </td>
+    </tr>
+    <tr>
+      <td>Convergence cluster</td>
+      <td>
+        A group of gap endpoints from different papers that are semantically near-identical
+        (cosine distance &lt; 0.25). A cluster with ≥3 members from ≥2 papers is an
+        "agreed-upon gap" — the field has independently identified the same unresolved problem.
+      </td>
+    </tr>
+    <tr>
+      <td>Tombstone</td>
+      <td>
+        A paper or gap marked as retracted, withdrawn, or otherwise removed from the
+        live index. Tombstoned records are preserved for provenance — the trail of what
+        existed is never deleted, only flagged.
+      </td>
+    </tr>
+    <tr>
+      <td>Reconcile</td>
+      <td>
+        Periodic sync between gitgap and a journal source (PMC search, OAI-PMH feed).
+        Adds new articles, detects tombstoned articles (no longer in the source),
+        updates article counts. Idempotent — re-running reconcile never creates duplicates.
+      </td>
+    </tr>
+    <tr>
+      <td>OAI-PMH</td>
+      <td>
+        Open Archives Initiative Protocol for Metadata Harvesting. The universal journal
+        feed protocol — used by OJS (Open Journal Systems), institutional repositories,
+        and many independent publishers. Each journal has its own OAI endpoint URL.
+        gitgap uses OAI-PMH for incremental journal harvesting.
+      </td>
+    </tr>
+    <tr>
+      <td>Ingest pipeline</td>
+      <td>
+        The full processing chain from raw paper to indexed gap: fetch → parse → classify
+        → embed → deduplicate → enrich → CAP score → keeper queue.
+        Modular — each stage is independently testable and replaceable.
+      </td>
+    </tr>
+  </tbody>
+</table>
+{% endblock %}

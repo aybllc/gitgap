@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% set active = "gaps" %}
+
+{% block title %}Gaps — gitgap{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">Gap Index</div>
+    <div class="page-sub">Phase 1 explicit declarations — keeper review pending</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="val">{{ stats.papers_ingested }}</div>
+      <div class="lbl">Papers</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">{{ stats.total_candidates }}</div>
+      <div class="lbl">Candidates</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">{{ stats.keeper_passed }}</div>
+      <div class="lbl">Keeper Pass</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">{{ stats.keeper_pending }}</div>
+      <div class="lbl">Pending Review</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">{{ stats.phase_1 }}</div>
+      <div class="lbl">Phase 1</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">{{ stats.phase_2 }}</div>
+      <div class="lbl">Phase 2</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" action="/view/gaps" class="filters">
+    <select name="verdict">
+      <option value="" {% if not verdict %}selected{% endif %}>All verdicts</option>
+      <option value="pending" {% if verdict == 'pending' %}selected{% endif %}>Pending</option>
+      <option value="pass" {% if verdict == 'pass' %}selected{% endif %}>Passed</option>
+      <option value="fail" {% if verdict == 'fail' %}selected{% endif %}>Failed</option>
+    </select>
+    <select name="phase">
+      <option value="" {% if not phase_filter %}selected{% endif %}>All phases</option>
+      <option value="1" {% if phase_filter == '1' %}selected{% endif %}>Phase 1</option>
+      <option value="2" {% if phase_filter == '2' %}selected{% endif %}>Phase 2</option>
+    </select>
+    <input type="text" name="term" value="{{ term or '' }}" placeholder="Gateway term…" style="width:180px;">
+    <button type="submit" class="btn btn-primary">Filter</button>
+    {% if verdict or phase_filter or term %}
+    <a href="/view/gaps" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- Toolbar: export + match count -->
+  {% set filter_qs %}{% if verdict %}verdict={{ verdict }}{% endif %}{% if phase_filter %}{% if verdict %}&{% endif %}phase={{ phase_filter }}{% endif %}{% if term %}{% if verdict or phase_filter %}&{% endif %}term={{ term }}{% endif %}{% endset %}
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+    <a href="/view/gaps/export.csv{% if filter_qs %}?{{ filter_qs }}{% endif %}"
+       class="btn btn-outline" style="font-size:12px; padding:4px 12px;">
+      ↓ Export CSV
+    </a>
+    <span style="font-size:12px; color:var(--ink-3);">{{ total }} matching</span>
+  </div>
+
+  <!-- Bulk Review Form (wraps table) -->
+  <form method="post" action="/view/gaps/bulk-review" id="bulk-form">
+    <input type="hidden" name="redirect_url"
+           value="/view/gaps{% if filter_qs %}?{{ filter_qs }}{% endif %}">
+
+    <!-- Bulk action bar — hidden until rows are checked -->
+    <div id="bulk-bar"
+         style="display:none; align-items:center; gap:12px; background:var(--surface-2,#f8f8fa);
+                border:1px solid var(--border,#e0e0e8); border-radius:6px;
+                padding:10px 14px; margin-bottom:10px;">
+      <span id="bulk-count" style="font-size:13px; font-weight:500; color:var(--ink,#18171A);"></span>
+      <select name="verdict"
+              style="font-size:12px; padding:4px 8px; border:1px solid var(--border,#e0e0e8);
+                     border-radius:4px; background:var(--surface,#fff); color:var(--ink,#18171A);">
+        <option value="pass">Mark Pass</option>
+        <option value="fail">Mark Fail</option>
+      </select>
+      <button type="submit" class="btn btn-primary" style="font-size:12px; padding:4px 14px;">
+        Apply to Selected
+      </button>
+      <button type="button" onclick="clearSelection()"
+              class="btn btn-outline" style="font-size:12px; padding:4px 10px;">
+        Clear
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32px; text-align:center;">
+              <input type="checkbox" id="select-all" onchange="toggleAll(this)"
+                     title="Select all on this page"
+                     style="cursor:pointer;">
+            </th>
+            <th>Paper</th>
+            <th>Declaration</th>
+            <th>Gateway Term</th>
+            <th>Conf</th>
+            <th>Type</th>
+            <th>Bridge</th>
+            <th>Verdict</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in gaps %}
+          <tr>
+            <td style="text-align:center;">
+              <input type="checkbox" name="gap_ids" value="{{ g.id }}"
+                     class="row-cb" onchange="updateBulkBar()"
+                     style="cursor:pointer;">
+            </td>
+            <td style="max-width:200px;">
+              <div style="font-weight:500; font-size:13px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+                {{ g.title or g.pmcid }}
+              </div>
+              <div style="font-size:11px; color:var(--ink-3); margin-top:2px;">
+                PMC{{ g.pmcid }}{% if g.pub_year %} · {{ g.pub_year }}{% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="decl-text">{{ g.declaration_text }}</div>
+            </td>
+            <td>
+              <span style="font-size:12px; font-weight:500;">{{ g.gateway_term }}</span>
+            </td>
+            <td>
+              <div class="conf-bar">
+                <div class="conf-track">
+                  <div class="conf-fill" style="width:{{ (g.confidence * 100)|int }}%"></div>
+                </div>
+                <span class="conf-val">{{ g.confidence }}</span>
+              </div>
+            </td>
+            <td>
+              <span style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2);">{{ g.gap_class or '—' }}</span>
+            </td>
+            <td>
+              {% if g.bridge_potential and g.bridge_potential >= 0.7 %}
+                <span title="{{ g.source_discipline }} → cross-domain" style="font-size:11px; font-weight:600; color:var(--ink);">⬡ {{ (g.bridge_potential * 100)|int }}%</span>
+              {% elif g.bridge_potential %}
+                <span style="font-size:11px; color:var(--ink-3);">{{ (g.bridge_potential * 100)|int }}%</span>
+              {% else %}
+                <span style="color:var(--ink-3);">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if g.keeper_verdict == 'pass' %}
+                <span class="badge badge-pass">Pass</span>
+              {% elif g.keeper_verdict == 'fail' %}
+                <span class="badge badge-fail">Fail</span>
+              {% else %}
+                <span class="badge badge-pending">Pending</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/view/gaps/{{ g.id }}" class="btn btn-outline" style="padding:4px 10px; font-size:12px;">Review</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" style="text-align:center; color:var(--ink-3); padding:40px;">
+              No gap candidates yet. Run <code>/ingest/run</code> to populate.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  <!-- Pagination -->
+  {% if total > limit %}
+  <div class="pagination">
+    {% if offset > 0 %}
+    <a href="?offset={{ [offset - limit, 0]|max }}&limit={{ limit }}{% if verdict %}&verdict={{ verdict }}{% endif %}{% if phase_filter %}&phase={{ phase_filter }}{% endif %}{% if term %}&term={{ term }}{% endif %}">← Prev</a>
+    {% endif %}
+    <span class="current">{{ (offset // limit) + 1 }}</span>
+    {% if offset + limit < total %}
+    <a href="?offset={{ offset + limit }}&limit={{ limit }}{% if verdict %}&verdict={{ verdict }}{% endif %}{% if phase_filter %}&phase={{ phase_filter }}{% endif %}{% if term %}&term={{ term }}{% endif %}">Next →</a>
+    {% endif %}
+    <span class="total">{{ total }} total</span>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function toggleAll(masterCb) {
+  document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = masterCb.checked; });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const checked = document.querySelectorAll('.row-cb:checked');
+  const bar = document.getElementById('bulk-bar');
+  const countEl = document.getElementById('bulk-count');
+  const all = document.getElementById('select-all');
+
+  if (checked.length > 0) {
+    bar.style.display = 'flex';
+    countEl.textContent = checked.length + ' gap' + (checked.length === 1 ? '' : 's') + ' selected';
+  } else {
+    bar.style.display = 'none';
+  }
+
+  const total = document.querySelectorAll('.row-cb').length;
+  all.checked = total > 0 && checked.length === total;
+  all.indeterminate = checked.length > 0 && checked.length < total;
+}
+
+function clearSelection() {
+  document.querySelectorAll('.row-cb, #select-all').forEach(cb => {
+    cb.checked = false;
+    cb.indeterminate = false;
+  });
+  updateBulkBar();
+}
+</script>
+{% endblock %}

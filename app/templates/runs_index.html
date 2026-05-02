@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% set active = "runs" %}
+
+{% block title %}Ingest Runs — gitgap{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">Ingest Runs</div>
+    <div class="page-sub">Pipeline execution history — PMC → BioC/JATS → gateway filter → DB</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Query</th>
+          <th>Status</th>
+          <th>Fetched</th>
+          <th>Parsed</th>
+          <th>Gaps Found</th>
+          <th>Started</th>
+          <th>Completed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in runs %}
+        <tr>
+          <td style="font-size:12px; color:var(--ink-3);">{{ r.id }}</td>
+          <td style="font-weight:500; max-width:260px;">{{ r.query_term }}</td>
+          <td>
+            {% if r.status == 'complete' %}
+              <span class="badge badge-pass">{{ r.status }}</span>
+            {% elif r.status == 'running' %}
+              <span class="badge badge-pending">{{ r.status }}</span>
+            {% else %}
+              <span class="badge badge-fail">{{ r.status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ r.pmcids_fetched or '—' }}</td>
+          <td>{{ r.pmcids_parsed or '—' }}</td>
+          <td>
+            {% if r.gaps_found %}
+              <span style="font-weight:600;">{{ r.gaps_found }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:12px; color:var(--ink-3);">{{ r.started_at[:16] if r.started_at else '—' }}</td>
+          <td style="font-size:12px; color:var(--ink-3);">{{ r.completed_at[:16] if r.completed_at else '—' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center; color:var(--ink-3); padding:40px;">No runs yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

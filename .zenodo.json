@@ -1,0 +1,23 @@
+{
+  "creators": [
+    {
+      "name": "Martin, Eric D.",
+      "affiliation": "All Your Baseline LLC",
+      "orcid": "0009-0006-5944-1742"
+    }
+  ],
+  "title": "gitgap: Knowledge Gap Observatory and Appreciated Gateway Methodology",
+  "description": "Research-gap detection pipeline that surfaces explicitly declared gaps from peer-reviewed literature (PMC). Implements the Appreciated Gateway methodology and the NAUGHT → CAUGHT → FOUND classification used to identify high-impact, publishable gaps in active research. FastAPI service with knowledge-gap visualization (globe view), structural-hole analysis, and rejected-trail audit. Live deployment at gitgap.org.",
+  "license": "Apache-2.0",
+  "keywords": [
+    "research gap detection",
+    "Appreciated Gateway",
+    "NAUGHT-CAUGHT-FOUND",
+    "PMC ingestion",
+    "literature mining",
+    "scientometrics",
+    "FastAPI",
+    "knowledge graph"
+  ],
+  "access_right": "open"
+}

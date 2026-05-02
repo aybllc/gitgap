@@ -1,0 +1,224 @@
+{% extends "admin/base_admin.html" %}
+{% set admin_section = "dashboard" %}
+{% block title %}Admin — gitgap{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+  <div class="page-title">Admin Dashboard</div>
+  <div class="page-sub">API sources, field mappings, journal registry, reconcile runs</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-strip">
+  <div class="stat-card">
+    <div class="val">{{ stats.source_count }}</div>
+    <div class="lbl">API Sources</div>
+  </div>
+  <div class="stat-card">
+    <div class="val">{{ stats.journal_count }}</div>
+    <div class="lbl">Journals</div>
+  </div>
+  <div class="stat-card">
+    <div class="val">{{ stats.mapping_count }}</div>
+    <div class="lbl">Field Mappings</div>
+  </div>
+  <div class="stat-card">
+    <div class="val">{{ stats.reconcile_runs }}</div>
+    <div class="lbl">Reconcile Runs</div>
+  </div>
+  <div class="stat-card" style="{% if stats.pending_ai > 0 %}border-color:#E67E22;{% endif %}">
+    <div class="val" style="{% if stats.pending_ai > 0 %}color:#E67E22;{% endif %}">
+      {{ stats.pending_ai }}
+    </div>
+    <div class="lbl">Uninterrogated Papers</div>
+  </div>
+  <div class="stat-card" style="{% if stats.journal_requests > 0 %}border-color:var(--accent);{% endif %}">
+    <div class="val" style="{% if stats.journal_requests > 0 %}color:var(--accent);{% endif %}">
+      {{ stats.journal_requests }}
+    </div>
+    <div class="lbl"><a href="/admin/journal-requests" style="color:inherit;">Journal Requests</a></div>
+  </div>
+</div>
+
+<div style="display:flex; flex-direction:column; gap:20px;">
+
+  <!-- Journal Discovery -->
+  <div class="card" style="">
+    <div class="card-title">Journal Discovery Probe</div>
+    <p style="font-size:13px; color:var(--ink-3); margin-bottom:14px;">
+      Enter a journal name to probe PMC for article availability and BioC full-text access.
+      The result is logged automatically — no API key is needed.
+    </p>
+    <form method="post" action="/admin/journals/discover"
+          style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <input type="text" name="journal_name" list="probe-suggestions"
+             placeholder="Select or type a journal name…"
+             required autocomplete="off"
+             style="flex:1; min-width:280px; border:1px solid var(--border);
+                    border-radius:6px; padding:8px 12px; font-size:14px;
+                    font-family:inherit; color:var(--ink); background:var(--bg);">
+      <datalist id="probe-suggestions">
+        {% for name in probe_suggestions %}
+        <option value="{{ name }}">
+        {% endfor %}
+      </datalist>
+      <button type="submit" class="btn btn-primary">Probe Journal →</button>
+      <span style="font-size:12px; color:var(--ink-3);">
+        Pending requests and registered journals appear as suggestions.
+      </span>
+    </form>
+  </div>
+
+  <!-- Retroactive AI Batch -->
+  <div class="card" style=" {% if stats.pending_ai > 0 %}border-color:#E67E22;{% endif %}">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap;">
+      <div>
+        <div class="card-title">Retroactive AI Interrogation</div>
+        <p style="font-size:13px; color:var(--ink-3); margin:6px 0 0;">
+          {% if stats.pending_ai > 0 %}
+            <strong style="color:#E67E22;">{{ stats.pending_ai }}</strong> paper{% if stats.pending_ai != 1 %}s{% endif %}
+            ingested before AI detection was enabled have not been interrogated.
+            Running the batch will score all of them for AI usage signals.
+          {% else %}
+            All papers have been interrogated for AI usage — no backlog.
+          {% endif %}
+        </p>
+      </div>
+      {% if stats.pending_ai > 0 %}
+      <form method="post" action="/admin/ai-batch" style="margin:0; flex-shrink:0;">
+        <button type="submit" class="btn btn-primary" style="background:#E67E22; border-color:#E67E22;">
+          Run Retroactive Batch → {{ stats.pending_ai }} papers
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Source summary -->
+  <div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="font-size:14px; font-weight:600;">API Sources</h2>
+      <a href="/admin/sources" class="btn btn-outline" style="font-size:12px; padding:4px 10px;">Manage →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Auth</th>
+            <th>Env</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sources %}
+          <tr>
+            <td>
+              <a href="/admin/sources/{{ s.id }}" style="font-weight:500; font-size:13px;">
+                {{ s.name }}
+              </a>
+              <div style="font-size:11px; color:var(--ink-3);">
+                {{ s.mapping_count }} mappings · {{ s.journal_count }} journals
+              </div>
+            </td>
+            <td style="font-size:12px; color:var(--ink-3);">{{ s.auth_type }}</td>
+            <td>
+              {% if s.api_key_env or s.email_env %}
+                <span style="font-size:11px; color:var(--ink-3);">
+                  {{ s.api_key_env or s.email_env or '—' }}
+                </span>
+              {% else %}
+                <span style="color:var(--ink-3);">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.status == 'active' %}
+                <span class="badge badge-pass">Active</span>
+              {% else %}
+                <span class="badge badge-pending">{{ s.status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" style="color:var(--ink-3); text-align:center; padding:24px;">No sources yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent reconcile runs -->
+  <div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="font-size:14px; font-weight:600;">Recent Reconcile Runs</h2>
+      <form method="post" action="/admin/reconcile-all" style="margin:0;">
+        <button type="submit" class="btn btn-outline" style="font-size:12px; padding:4px 10px;">
+          Reconcile All Active →
+        </button>
+      </form>
+    </div>
+    {% if recent_reconciles %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Journal</th><th>Added</th><th>Tombstoned</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for r in recent_reconciles %}
+          <tr>
+            <td style="font-size:13px;">
+              {{ r.journal_name }}
+              <div style="font-size:11px; color:var(--ink-3);">{{ r.triggered_at[:16] }}</div>
+            </td>
+            <td style="font-size:13px;">{{ r.articles_added }}</td>
+            <td style="font-size:13px; color:{% if r.articles_tombstoned %}#C0392B{% else %}var(--ink-3){% endif %};">
+              {{ r.articles_tombstoned }}
+            </td>
+            <td>
+              {% if r.status == 'complete' %}<span class="badge badge-pass">Done</span>
+              {% elif r.status == 'running' %}<span class="badge badge-pending">Running</span>
+              {% else %}<span class="badge badge-fail">{{ r.status }}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="font-size:13px; color:var(--ink-3);">No reconcile runs yet. Add journals and trigger a run.</p>
+    {% endif %}
+  </div>
+
+  <!-- Recent discovery log -->
+  {% if recent_discoveries %}
+  <div style="">
+    <h2 style="font-size:14px; font-weight:600; margin-bottom:14px;">Discovery Log (Recent)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Journal Name</th><th>Probed At</th><th>Result</th><th>Articles</th><th>BioC</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          {% for d in recent_discoveries %}
+          <tr>
+            <td style="font-weight:500; font-size:13px;">{{ d.journal_name }}</td>
+            <td style="font-size:12px; color:var(--ink-3);">{{ d.queried_at[:16] }}</td>
+            <td>
+              {% if d.result_status == 'found' %}<span class="badge badge-pass">Found</span>
+              {% elif d.result_status == 'partial' %}<span class="badge badge-pending">Partial</span>
+              {% elif d.result_status == 'probing' %}<span class="badge badge-pending">Probing…</span>
+              {% else %}<span class="badge badge-fail">{{ d.result_status }}</span>{% endif %}
+            </td>
+            <td style="font-size:13px;">{{ d.article_count }}</td>
+            <td style="font-size:13px;">{% if d.bioc_available %}✓{% else %}—{% endif %}</td>
+            <td style="font-size:12px; color:var(--ink-3);">{{ d.notes or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

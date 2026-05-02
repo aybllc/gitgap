@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% set active = "rejected" %}
+
+{% block title %}Rejected Trail — gitgap{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">Rejected Trail</div>
+    <div class="page-sub">Gaps that were attempted but failed peer review. The trail is preserved — each entry shows where the attempt stopped and how to continue from there.</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="val">{{ rejected_stats.total_rejected }}</div>
+      <div class="lbl">Total Rejected</div>
+    </div>
+    {% for mc in mode_counts %}
+    <div class="stat-card">
+      <div class="val">{{ mc.cnt }}</div>
+      <div class="lbl">{{ mc.rejection_mode.replace('_', ' ').title() }}</div>
+    </div>
+    {% endfor %}
+    <div class="stat-card">
+      <div class="val">{{ rejected_stats.with_pickup }}</div>
+      <div class="lbl">With Pickup Instructions</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" action="/view/rejected" class="filters">
+    <select name="mode">
+      <option value="" {% if not mode_filter %}selected{% endif %}>All failure modes</option>
+      <option value="methodology" {% if mode_filter == 'methodology' %}selected{% endif %}>Methodology</option>
+      <option value="scope" {% if mode_filter == 'scope' %}selected{% endif %}>Scope</option>
+      <option value="insufficient_evidence" {% if mode_filter == 'insufficient_evidence' %}selected{% endif %}>Insufficient Evidence</option>
+      <option value="theory_gap" {% if mode_filter == 'theory_gap' %}selected{% endif %}>Theory Gap</option>
+      <option value="duplicate" {% if mode_filter == 'duplicate' %}selected{% endif %}>Duplicate</option>
+      <option value="other" {% if mode_filter == 'other' %}selected{% endif %}>Other</option>
+    </select>
+    <input type="text" name="term" value="{{ term or '' }}" placeholder="Gateway term…" style="width:180px;">
+    <button type="submit" class="btn btn-primary">Filter</button>
+    {% if mode_filter or term %}
+    <a href="/view/rejected" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Gap Declaration</th>
+          <th>Gateway Term</th>
+          <th>Failure Mode</th>
+          <th>Rejected</th>
+          <th>Pickup Instructions</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in gaps %}
+        <tr style="border-left: 3px solid rgba(220,90,60,0.25);">
+          <td style="max-width:260px;">
+            <div class="decl-text">{{ g.declaration_text }}</div>
+            <div style="font-size:11px; color:var(--ink-3); margin-top:3px;">
+              {{ g.title or ('PMC' + g.pmcid) }}{% if g.pub_year %} · {{ g.pub_year }}{% endif %}
+            </div>
+          </td>
+          <td>
+            <span style="font-size:12px; font-weight:500;">{{ g.gateway_term or '—' }}</span>
+          </td>
+          <td>
+            <span class="badge badge-fail" style="text-transform:capitalize; letter-spacing:.02em;">
+              {{ (g.rejection_mode or 'other').replace('_', ' ') }}
+            </span>
+          </td>
+          <td style="font-size:12px; color:var(--ink-3); white-space:nowrap;">
+            {{ g.rejected_at[:10] if g.rejected_at else '—' }}
+          </td>
+          <td style="max-width:280px;">
+            {% if g.pickup_instructions %}
+            <div style="font-size:12px; color:var(--ink-2); line-height:1.55;
+                        border-left:2px solid #E8856A; padding-left:8px;">
+              {{ g.pickup_instructions }}
+            </div>
+            {% else %}
+            <span style="color:var(--ink-3);">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="/view/gaps/{{ g.id }}" class="btn btn-outline"
+               style="padding:4px 10px; font-size:12px;">View Gap →</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center; color:var(--ink-3); padding:40px;">
+            No rejected gaps yet. The trail grows as papers move through peer review.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total > limit %}
+  <div class="pagination">
+    {% if offset > 0 %}
+    <a href="?offset={{ [offset - limit, 0]|max }}&limit={{ limit }}{% if mode_filter %}&mode={{ mode_filter }}{% endif %}{% if term %}&term={{ term }}{% endif %}">← Prev</a>
+    {% endif %}
+    <span class="current">{{ (offset // limit) + 1 }}</span>
+    {% if offset + limit < total %}
+    <a href="?offset={{ offset + limit }}&limit={{ limit }}{% if mode_filter %}&mode={{ mode_filter }}{% endif %}{% if term %}&term={{ term }}{% endif %}">Next →</a>
+    {% endif %}
+    <span class="total">{{ total }} total</span>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

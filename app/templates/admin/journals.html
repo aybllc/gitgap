@@ -1,0 +1,254 @@
+{% extends "admin/base_admin.html" %}
+{% set admin_section = "journals" %}
+{% block title %}Journals — Admin — gitgap{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+  <div class="page-title">Journal Registry</div>
+  <div class="page-sub">
+    Journals under active coverage. Each journal maps to an API source and a search query
+    used for reconcile runs.
+  </div>
+</div>
+
+{% if discover_status %}
+<div style="margin-bottom:20px; border-left:4px solid
+            {% if discover_status == 'probing' %}#D97706
+            {% elif discover_status == 'found' %}#18A34A
+            {% elif discover_status == 'not_found' %}#C0392B
+            {% else %}var(--ink){% endif %};
+            background:var(--surface); border-radius:0 6px 6px 0;
+            padding:10px 14px; font-size:13px;">
+  {% if discover_status == 'probing' %}
+    Probe queued for <strong>{{ discover_name }}</strong> — check back in a moment. Results will appear in the discovery log below.
+  {% elif discover_status == 'found' %}
+    <strong>{{ discover_name }}</strong> — {{ discover_count }} articles found in PMC.
+  {% elif discover_status == 'not_found' %}
+    <strong>{{ discover_name }}</strong> — no articles found in PMC under that name. Try a variant or a different source.
+  {% else %}
+    <strong>{{ discover_name }}</strong> — {{ discover_status }}
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Journal Discovery + Bulk Reconcile -->
+<div style="display:grid; grid-template-columns:1fr auto; gap:20px; align-items:start; margin-bottom:32px;">
+
+  <div class="card">
+    <div class="card-title">Probe a Journal</div>
+    <p style="font-size:13px; color:var(--ink-3); margin-bottom:12px;">
+      Enter a journal name to check PMC availability and BioC full-text access.
+      Results are logged automatically. Add confirmed journals using the form below.
+    </p>
+    <form method="post" action="/admin/journals/discover"
+          style="display:flex; gap:10px; flex-wrap:wrap;">
+      <input type="text" name="journal_name" required autocomplete="off"
+             placeholder="e.g. Frontiers in Psychology"
+             style="flex:1; min-width:220px; border:1px solid var(--border);
+                    border-radius:6px; padding:8px 12px; font-size:14px;
+                    font-family:inherit; color:var(--ink); background:var(--bg);">
+      <button type="submit" class="btn btn-primary">Probe →</button>
+    </form>
+  </div>
+
+  <div style="padding-top:8px;">
+    <form method="post" action="/admin/reconcile-all">
+      <button type="submit" class="btn btn-outline" style="white-space:nowrap;">
+        ↻ Reconcile All Active
+      </button>
+    </form>
+    <p style="font-size:11px; color:var(--ink-3); margin-top:6px; text-align:center;">
+      Runs all active journals<br>in background
+    </p>
+  </div>
+
+</div>
+
+<!-- Journal list -->
+<div class="table-wrap" style="margin-bottom:40px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Journal</th>
+        <th>Source</th>
+        <th>Search Query</th>
+        <th>OAI Endpoint</th>
+        <th>Articles</th>
+        <th>Last Reconciled</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in journals %}
+      <tr>
+        <td>
+          <a href="/admin/journals/{{ j.id }}" style="font-weight:500; font-size:13px;">
+            {{ j.journal_name }}
+          </a>
+          {% if j.issn %}
+          <div style="font-size:11px; color:var(--ink-3);">ISSN {{ j.issn }}</div>
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:var(--ink-3);">{{ j.source_name }}</td>
+        <td>
+          <code style="font-size:11px; color:var(--ink-3); word-break:break-all;">
+            {{ j.search_query[:60] }}{% if j.search_query|length > 60 %}…{% endif %}
+          </code>
+        </td>
+        <td style="font-size:11px; color:var(--ink-3);">
+          {{ j.oai_endpoint[:40] + '…' if j.oai_endpoint and j.oai_endpoint|length > 40
+             else (j.oai_endpoint or '—') }}
+        </td>
+        <td style="font-size:13px; text-align:center;">{{ j.article_count }}</td>
+        <td style="font-size:12px; color:var(--ink-3);">
+          {{ j.last_reconciled[:10] if j.last_reconciled else 'Never' }}
+        </td>
+        <td>
+          {% if j.status == 'active' %}<span class="badge badge-pass">Active</span>
+          {% elif j.status == 'paused' %}<span class="badge badge-pending">Paused</span>
+          {% else %}<span class="badge badge-fail">{{ j.status }}</span>{% endif %}
+          {% if j.running_count %}
+          <span class="badge badge-pending" style="margin-left:4px;">⟳</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="display:flex; gap:6px;">
+            <a href="/admin/journals/{{ j.id }}"
+               class="btn btn-outline" style="padding:3px 8px; font-size:11px;">Edit</a>
+            <form method="post" action="/admin/journals/{{ j.id }}/reconcile" style="margin:0;">
+              <button type="submit" class="btn btn-outline"
+                      style="padding:3px 8px; font-size:11px;">↻</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" style="text-align:center; color:var(--ink-3); padding:40px;">
+          No journals registered. Use the discovery probe above, then add confirmed journals below.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add journal form -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start;">
+
+  <div class="card">
+    <div class="card-title">Add Journal to Registry</div>
+    <form method="post" action="/admin/journals"
+          style="display:flex; flex-direction:column; gap:12px;">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">Journal Name *</label>
+        <input type="text" name="journal_name" required placeholder="Nature Neuroscience"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:13px; font-family:inherit;">
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">API Source *</label>
+        <select name="source_id"
+                style="width:100%; border:1px solid var(--border); border-radius:6px;
+                       padding:7px 10px; font-size:13px; font-family:inherit;">
+          {% for s in sources %}
+          <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">
+            ISSN <span style="font-weight:400; color:var(--ink-3);">(optional)</span>
+          </label>
+          <input type="text" name="issn" placeholder="1234-5678"
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:13px; font-family:monospace;">
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">
+            NLM ID <span style="font-weight:400; color:var(--ink-3);">(optional)</span>
+          </label>
+          <input type="text" name="nlm_id" placeholder="101616397"
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:13px; font-family:monospace;">
+        </div>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">
+          Search Query
+          <span style="font-weight:400; color:var(--ink-3);">
+            (auto-built from name if blank)
+          </span>
+        </label>
+        <input type="text" name="search_query"
+               placeholder='"Nature Neuroscience"[journal]'
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:12px; font-family:monospace;">
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">
+          OAI-PMH Endpoint
+          <span style="font-weight:400; color:var(--ink-3);">(optional)</span>
+        </label>
+        <input type="text" name="oai_endpoint"
+               placeholder="https://journal.com/index.php/journal/oai"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:12px; font-family:monospace;">
+        <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">
+          OJS and many independent journals support OAI-PMH harvesting.
+          Leave blank for PMC-only sources.
+        </p>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">Notes</label>
+        <textarea name="notes" rows="2"
+                  style="width:100%; border:1px solid var(--border); border-radius:6px;
+                         padding:7px 10px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+      </div>
+      <div><button type="submit" class="btn btn-primary">Add Journal</button></div>
+    </form>
+  </div>
+
+  <!-- Discovery log -->
+  <div class="card">
+    <div class="card-title">Recent Discovery Probes</div>
+    {% if recent_discoveries %}
+    <div style="display:flex; flex-direction:column; gap:0;">
+      {% for d in recent_discoveries %}
+      <div style="padding:10px 0; border-bottom:1px solid var(--border);
+                  display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; font-weight:500; color:var(--ink);">{{ d.journal_name }}</div>
+          <div style="font-size:11px; color:var(--ink-3); margin-top:2px;">
+            {{ d.queried_at[:16] }} · {{ d.article_count }} articles
+            {% if d.bioc_available %} · BioC ✓{% endif %}
+          </div>
+          {% if d.notes %}
+          <div style="font-size:11px; color:var(--ink-3); margin-top:3px;">{{ d.notes }}</div>
+          {% endif %}
+        </div>
+        <div>
+          {% if d.result_status == 'found' %}<span class="badge badge-pass">Found</span>
+          {% elif d.result_status == 'partial' %}<span class="badge badge-pending">Partial</span>
+          {% elif d.result_status == 'probing' %}<span class="badge badge-pending">Probing</span>
+          {% else %}<span class="badge badge-fail">None</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="font-size:13px; color:var(--ink-3);">No probes run yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

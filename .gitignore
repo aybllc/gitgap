@@ -1,0 +1,50 @@
+# ── Environment ──────────────────────────────────────────────────────────────
+.env
+.venv/
+*.pyc
+__pycache__/
+.DS_Store
+*.egg-info/
+dist/
+build/
+
+# ── Runtime logs ─────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── USO Transparency Tiers ───────────────────────────────────────────────────
+# Tier 3 (unedited) — raw ingest session records, unrendered conversation logs
+sessions/
+transcripts/unedited/
+provenance/sessions/
+provenance/raw/
+*.session.json
+*.session.jsonl
+*.raw.md
+
+# ── Database ─────────────────────────────────────────────────────────────────
+# SQLite live DB (data, not schema)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── Database ─────────────────────────────────────────────────────────────────
+# (continued)
+data/cache/
+data/results/
+
+# ── Local archives / dev-only artefacts ──────────────────────────────────────
+*.zip
+.coverage
+.pytest_cache/
+
+# ── Local app working tree (not part of the methodology repo) ────────────────
+gitgap-app/
+
+# ── IDE / OS ─────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*~

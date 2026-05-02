@@ -1,0 +1,101 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Quickstart — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Quickstart</h1>
+<p class="docs-lead">
+  gitgap is a gap detection pipeline — it surfaces explicitly declared research gaps from
+  peer-reviewed literature and tracks every attempt to resolve them.
+  NAUGHT → CAUGHT → FOUND.
+</p>
+
+<h2>What is a research gap?</h2>
+<p>
+  Every paper ends with a discussion section. Inside that section, authors declare what
+  they couldn't address, what the field still doesn't know, what the next study needs to
+  do. Those declarations are gaps. They are written, published, and then lost — no system
+  tracks them. gitgap indexes exactly those declarations and maintains a lifecycle for each one.
+</p>
+
+<h2>Four steps to using gitgap</h2>
+
+<div class="docs-step">
+  <div class="docs-step-num">1</div>
+  <div class="docs-step-body">
+    <h4>Search the gap index</h4>
+    <p>
+      Go to <a href="/view/gaps">Gaps</a> and search by gateway term — the primary
+      disciplinary keyword for the gap (e.g., <code>Morton encoding</code>,
+      <code>Hubble tension</code>, <code>predictive policing</code>).
+      Filter by discipline, confidence, or keeper verdict.
+    </p>
+    <pre><code>GET /gaps/search?q=Morton+encoding&amp;limit=10</code></pre>
+  </div>
+</div>
+
+<div class="docs-step">
+  <div class="docs-step-num">2</div>
+  <div class="docs-step-body">
+    <h4>Read a gap declaration</h4>
+    <p>
+      Click any gap to see the full extracted declaration, the source paper, the gateway
+      term, bridge potential (cross-discipline score), and the current lifecycle state.
+      CAUGHT gaps show the active resolution attempt. FOUND gaps show which paper closed
+      them.
+    </p>
+  </div>
+</div>
+
+<div class="docs-step">
+  <div class="docs-step-num">3</div>
+  <div class="docs-step-body">
+    <h4>Explore the 3D Globe</h4>
+    <p>
+      Open the <a href="/view/globe">Globe</a> to see the full gap corpus as a 3D
+      visualization. Each spike is a gap. Spike height = confidence. Ring = CAUGHT
+      (in-progress). Gold ring = FOUND (resolved). The globe is filterable by discipline
+      and lifecycle state.
+    </p>
+  </div>
+</div>
+
+<div class="docs-step">
+  <div class="docs-step-num">4</div>
+  <div class="docs-step-body">
+    <h4>Use the API</h4>
+    <p>Fetch gaps for your research workflow:</p>
+    <pre><code># Search by keyword
+GET /gaps/search?q=spatial+indexing&amp;min_score=0.6
+
+# Get structural holes (cross-discipline bridges)
+GET /gaps/structural-holes?source=computer_science&amp;target=criminal_justice
+
+# Get a specific gap
+GET /gaps/42
+
+# Pin a new gap (API key required)
+POST /gaps/pin
+{
+  "declaration_text": "No study has examined...",
+  "gateway_term": "your-term",
+  "paper_pmcid": "PMC0000000"
+}</code></pre>
+    <p>Full interactive docs at <a href="/api/docs" target="_blank">/api/docs</a>.</p>
+  </div>
+</div>
+
+<h2>For journal editors</h2>
+<p>
+  If your journal publishes peer-reviewed work, your papers are likely declaring gaps that
+  gitgap doesn't know about yet. See <a href="/docs/journals">Journals We Aggregate</a>
+  to check coverage, or <a href="/docs/submit-journal">Submit Your Journal</a> to request
+  aggregation.
+</p>
+
+<div class="docs-callout">
+  <strong>NAUGHT → CAUGHT → FOUND</strong><br>
+  NAUGHT = declared, unaddressed. CAUGHT = a paper is attempting it. FOUND = gap closed.
+  REJECTED = attempt failed — the trail and pickup instructions are preserved.
+  Every state is tracked. Nothing is discarded.
+</div>
+{% endblock %}

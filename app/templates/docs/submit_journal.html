@@ -1,0 +1,139 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Submit Your Journal — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Submit Your Journal</h1>
+<p class="docs-lead">
+  If your journal publishes peer-reviewed work, your papers are already declaring gaps
+  that gitgap doesn't know about. Submit here and we'll probe for API access within 24 hours.
+</p>
+
+{% if flash == 'submitted' %}
+<div class="docs-callout" style="border-left-color: #18171A;">
+  <strong>Request received.</strong>
+  We'll probe API access for your journal and contact you within 24–48 hours with the result.
+  If OAI-PMH or PMC access is available, your journal will be added to the reconcile queue.
+</div>
+{% endif %}
+
+<h2>How aggregation works</h2>
+
+<h3>Path 1 — PMC / PubMed Central</h3>
+<p>
+  If your journal is indexed in PubMed Central, it can be added immediately.
+  Provide your NLM ID (from the NLM catalog) and we'll add it to the reconcile queue.
+  Most biomedical journals are already accessible via this path.
+</p>
+
+<h3>Path 2 — OAI-PMH (OJS journals and institutional repositories)</h3>
+<p>
+  Any journal running OJS (Open Journal Systems) supports OAI-PMH by default.
+  Your OAI endpoint is typically:
+</p>
+<pre><code>https://yourjournal.com/index.php/journal/oai
+https://yourjournal.com/oai
+https://yourjournal.com/oai/request</code></pre>
+<p>
+  Provide the endpoint URL and we'll test it and add your journal to the harvesting
+  schedule. OAI-PMH enables incremental sync — only new articles are fetched on each run.
+</p>
+
+<h3>Path 3 — Manual or bulk submission</h3>
+<p>
+  No PMC listing, no OAI-PMH endpoint? Submit DOIs manually or contact us for a bulk
+  ingestion arrangement. We accept JATS XML, BioC JSON, or plain-text abstracts.
+</p>
+
+<h2>Who qualifies</h2>
+<ul>
+  <li>Peer-reviewed journals — any discipline</li>
+  <li>Preprint servers with editorial curation</li>
+  <li>Institutional repositories with peer-reviewed content</li>
+  <li>Open-access and hybrid access journals (full-text improves extraction quality but is not required)</li>
+</ul>
+<p>
+  We do not aggregate predatory, hijacked, or non-peer-reviewed journals.
+  All submitted requests are reviewed before addition.
+</p>
+
+<h2>What happens after submission</h2>
+<ol>
+  <li>We probe the journal name against PMC, Crossref, DOAJ, and OpenAlex</li>
+  <li>If a PMC or OAI-PMH feed is found, the journal is added to the reconcile queue (24–48h)</li>
+  <li>If no feed is available, we log the discovery result and contact you with alternatives</li>
+  <li>Your journal appears in <a href="/docs/journals">Journals We Aggregate</a> once the first reconcile runs</li>
+</ol>
+
+<h2>Submit your journal</h2>
+
+<form method="post" action="/docs/submit-journal"
+      style="display:flex; flex-direction:column; gap:16px; max-width:560px;">
+
+  <div>
+    <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+      Journal Name *
+    </label>
+    <input type="text" name="journal_name" required placeholder="Journal of Example Science"
+           style="width:100%; border:1px solid var(--border); border-radius:6px;
+                  padding:8px 10px; font-size:13px; font-family:inherit; color:var(--ink);">
+  </div>
+
+  <div>
+    <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+      Journal Website URL
+    </label>
+    <input type="url" name="url" placeholder="https://yourjournal.com"
+           style="width:100%; border:1px solid var(--border); border-radius:6px;
+                  padding:8px 10px; font-size:12px; font-family:monospace; color:var(--ink);">
+  </div>
+
+  <div>
+    <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+      OAI-PMH Endpoint
+      <span style="font-weight:400; color:var(--ink-3);">— if known</span>
+    </label>
+    <input type="url" name="oai_endpoint" placeholder="https://yourjournal.com/oai"
+           style="width:100%; border:1px solid var(--border); border-radius:6px;
+                  padding:8px 10px; font-size:12px; font-family:monospace; color:var(--ink);">
+    <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">
+      OJS journals: usually /index.php/journal/oai or /oai
+    </p>
+  </div>
+
+  <div>
+    <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+      ISSN
+      <span style="font-weight:400; color:var(--ink-3);">— print or online</span>
+    </label>
+    <input type="text" name="issn" placeholder="0000-0000"
+           style="width:160px; border:1px solid var(--border); border-radius:6px;
+                  padding:8px 10px; font-size:12px; font-family:monospace; color:var(--ink);">
+  </div>
+
+  <div>
+    <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+      Contact Email *
+    </label>
+    <input type="email" name="contact_email" required placeholder="editor@yourjournal.com"
+           style="width:100%; border:1px solid var(--border); border-radius:6px;
+                  padding:8px 10px; font-size:13px; font-family:inherit; color:var(--ink);">
+    <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">
+      We'll reply with the discovery result — typically within 24 hours.
+    </p>
+  </div>
+
+  <div>
+    <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+      Notes
+    </label>
+    <textarea name="notes" rows="3" placeholder="Any additional context — disciplines covered, access type, special access arrangements..."
+              style="width:100%; border:1px solid var(--border); border-radius:6px;
+                     padding:8px 10px; font-size:12px; font-family:inherit; color:var(--ink);
+                     resize:vertical;"></textarea>
+  </div>
+
+  <div>
+    <button type="submit" class="btn btn-primary">Submit Journal Request</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "admin/base_admin.html" %}
+{% set admin_section = "journals" %}
+{% block title %}{{ journal.journal_name }} — Admin — gitgap{% endblock %}
+
+{% block admin_content %}
+
+{% if flash %}
+<div style="margin-bottom:16px; border-left:4px solid var(--ink); padding:8px 12px;
+            background:var(--surface); border-radius:0 6px 6px 0; font-size:13px;">
+  {{ flash }}
+</div>
+{% endif %}
+
+<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+  <div>
+    <div class="page-title">{{ journal.journal_name }}</div>
+    <div class="page-sub">
+      {{ journal.source_name }}
+      {% if journal.issn %} · ISSN {{ journal.issn }}{% endif %}
+      {% if journal.nlm_id %} · NLM {{ journal.nlm_id }}{% endif %}
+      · {{ journal.article_count }} articles ingested
+    </div>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <form method="post" action="/admin/journals/{{ journal.id }}/reconcile">
+      <button type="submit" class="btn btn-primary">↻ Reconcile Now</button>
+    </form>
+    <form method="post" action="/admin/journals/{{ journal.id }}/delete"
+          onsubmit="return confirm('Delete {{ journal.journal_name }} and all its reconcile history?');">
+      <button type="submit" class="btn btn-outline"
+              style="color:var(--ink-3); font-size:13px;">Delete</button>
+    </form>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 320px; gap:28px; align-items:start;">
+
+  <!-- Reconcile history -->
+  <div>
+    <h2 style="font-size:14px; font-weight:600; margin-bottom:14px;">
+      Reconcile History ({{ log|length }})
+    </h2>
+    {% if log %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Triggered</th>
+            <th>Completed</th>
+            <th>Checked</th>
+            <th>Added</th>
+            <th>Tombstoned</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in log %}
+          <tr>
+            <td style="font-size:12px; color:var(--ink-3);">{{ r.triggered_at[:16] }}</td>
+            <td style="font-size:12px; color:var(--ink-3);">
+              {{ r.completed_at[:16] if r.completed_at else '—' }}
+            </td>
+            <td style="font-size:13px; text-align:center;">{{ r.articles_checked }}</td>
+            <td style="font-size:13px; text-align:center; font-weight:{% if r.articles_added %}600{% else %}400{% endif %};">
+              {{ r.articles_added }}
+            </td>
+            <td style="font-size:13px; text-align:center;
+                       color:{% if r.articles_tombstoned %}#C0392B{% else %}var(--ink-3){% endif %};">
+              {{ r.articles_tombstoned }}
+            </td>
+            <td>
+              {% if r.status == 'complete' %}<span class="badge badge-pass">Done</span>
+              {% elif r.status == 'running' %}<span class="badge badge-pending">Running</span>
+              {% else %}<span class="badge badge-fail">Error</span>{% endif %}
+              {% if r.error_message %}
+              <div style="font-size:11px; color:#C0392B; margin-top:3px; max-width:200px;">
+                {{ r.error_message[:100] }}
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card" style="text-align:center; padding:32px;">
+      <p style="color:var(--ink-3); font-size:13px;">
+        No reconcile runs yet.
+        Click <strong>↻ Reconcile Now</strong> to start the first run.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Edit form -->
+  <div class="card">
+    <div class="card-title">Edit Journal</div>
+    <form method="post" action="/admin/journals/{{ journal.id }}/edit"
+          style="display:flex; flex-direction:column; gap:12px;">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">Journal Name</label>
+        <input type="text" name="journal_name" value="{{ journal.journal_name }}" required
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:13px; font-family:inherit;">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">ISSN</label>
+          <input type="text" name="issn" value="{{ journal.issn or '' }}"
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:12px; font-family:monospace;">
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:500;
+                        color:var(--ink-2); margin-bottom:5px;">NLM ID</label>
+          <input type="text" name="nlm_id" value="{{ journal.nlm_id or '' }}"
+                 style="width:100%; border:1px solid var(--border); border-radius:6px;
+                        padding:7px 10px; font-size:12px; font-family:monospace;">
+        </div>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">Search Query</label>
+        <input type="text" name="search_query" value="{{ journal.search_query }}" required
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:12px; font-family:monospace;">
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">OAI-PMH Endpoint</label>
+        <input type="text" name="oai_endpoint" value="{{ journal.oai_endpoint or '' }}"
+               placeholder="https://journal.com/oai"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:12px; font-family:monospace;">
+        <p style="font-size:11px; color:var(--ink-3); margin-top:4px;">
+          For OJS journals and institutional repos.
+        </p>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">Status</label>
+        <select name="status"
+                style="width:100%; border:1px solid var(--border); border-radius:6px;
+                       padding:7px 10px; font-size:13px; font-family:inherit;">
+          <option value="active"  {% if journal.status == 'active' %}selected{% endif %}>Active</option>
+          <option value="paused"  {% if journal.status == 'paused' %}selected{% endif %}>Paused</option>
+          <option value="tombstoned" {% if journal.status == 'tombstoned' %}selected{% endif %}>Tombstoned</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500;
+                      color:var(--ink-2); margin-bottom:5px;">Notes</label>
+        <textarea name="notes" rows="3"
+                  style="width:100%; border:1px solid var(--border); border-radius:6px;
+                         padding:7px 10px; font-size:12px; font-family:inherit; resize:vertical;">{{ journal.notes or '' }}</textarea>
+      </div>
+      <div><button type="submit" class="btn btn-primary" style="font-size:12px;">Save</button></div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

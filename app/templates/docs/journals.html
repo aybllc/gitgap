@@ -1,0 +1,90 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Journals We Aggregate — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Journals We Aggregate</h1>
+<p class="docs-lead">
+  gitgap currently aggregates from {{ journals|length }} journal{% if journals|length != 1 %}s{% endif %},
+  covering {{ total_articles }} articles.
+  Gaps are extracted from every paper's discussion, limitations, and conclusions sections.
+</p>
+
+{% if journals %}
+<div style="margin-bottom: 24px;">
+  <table class="docs-table">
+    <thead>
+      <tr>
+        <th>Journal</th>
+        <th>Source</th>
+        <th>ISSN</th>
+        <th style="text-align:right;">Articles</th>
+        <th>Last Reconciled</th>
+        <th>OAI-PMH</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in journals %}
+      <tr>
+        <td>{{ j.journal_name }}</td>
+        <td style="font-size:12px; color:var(--ink-3);">{{ j.source_name }}</td>
+        <td style="font-family:monospace; font-size:12px; color:var(--ink-3);">
+          {{ j.issn or '—' }}
+        </td>
+        <td style="text-align:right; font-weight:600;">{{ j.article_count }}</td>
+        <td style="font-size:12px; color:var(--ink-3);">
+          {{ j.last_reconciled[:10] if j.last_reconciled else 'Pending' }}
+        </td>
+        <td style="font-size:12px;">
+          {% if j.oai_endpoint %}
+            <span title="{{ j.oai_endpoint }}"
+                  style="color:var(--ink); font-weight:500;">✓ Yes</span>
+          {% else %}
+            <span style="color:var(--ink-3);">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="docs-callout">
+  No journals are currently registered in the active index.
+  <a href="/admin/journals">Add journals via the admin panel</a> or
+  <a href="/docs/submit-journal">submit a request</a>.
+</div>
+{% endif %}
+
+<h2>How reconcile works</h2>
+<p>
+  Each journal is reconciled periodically against its source (PMC or OAI-PMH endpoint).
+  The reconcile process:
+</p>
+<ol>
+  <li>Fetches the current article list for the journal's search query or OAI feed</li>
+  <li>Adds any new articles to the ingest pipeline</li>
+  <li>Detects articles that have been retracted or removed and marks them as tombstoned</li>
+  <li>Updates the article count and last-reconciled timestamp</li>
+</ol>
+<p>
+  Reconcile runs do not re-process articles already in the index — only new and changed
+  articles are processed. Deduplication prevents duplicate gap entries when the same
+  paper appears in multiple sources.
+</p>
+
+<h2>Coverage gaps</h2>
+<p>
+  The current index is weighted toward biomedical and life sciences via PMC. We are
+  actively expanding to social sciences, computer science, psychology, and physics
+  via OAI-PMH and publisher APIs. If your journal is not listed,
+  <a href="/docs/submit-journal">submit a request</a> — OAI-PMH-enabled journals
+  can typically be added within 24–48 hours.
+</p>
+
+<div class="docs-callout" style="margin-top:32px;">
+  <strong>Your journal not listed?</strong><br>
+  <a href="/docs/submit-journal">Submit your journal for aggregation →</a>
+  We support PMC-indexed journals, OJS journals via OAI-PMH,
+  and manual DOI submission for journals without a machine-readable feed.
+</div>
+{% endblock %}

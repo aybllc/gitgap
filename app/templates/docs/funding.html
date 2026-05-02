@@ -1,0 +1,98 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Funding — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Funding</h1>
+<p class="docs-lead">
+  gitgap is an open infrastructure project. The gap detection pipeline, globe, and API
+  are free and self-hostable. Sustainability comes from institutional partnerships,
+  grants, and community sponsorship — not advertising or venture capital.
+</p>
+
+<div class="docs-callout">
+  <strong>No VC. No ads.</strong>
+  The gap index must remain unbiased. Commercial interests that weight which gaps appear
+  or how prominently they appear would corrupt the core value of the system.
+  gitgap will not accept funding that requires this.
+</div>
+
+<h2>Open source core — always free</h2>
+<p>
+  The gap detection pipeline, NAUGHT→CAUGHT→FOUND lifecycle, globe visualization,
+  keeper review, and full API are open source and will remain free.
+  Self-hosting requires only Python 3.11+ and SQLite — no cloud dependency.
+</p>
+
+<h2>Sustainability models</h2>
+
+<table class="docs-table">
+  <thead>
+    <tr><th>Model</th><th>Description</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GitHub Sponsors</td>
+      <td>Individual and organizational sponsorship. Sponsors get listed in the index, nothing else — no feature prioritization, no ad placement.</td>
+      <td>Planned</td>
+    </tr>
+    <tr>
+      <td>Institutional hosting</td>
+      <td>Universities and research institutes that want a managed gitgap instance with SLA, dedicated reconcile capacity, and priority journal onboarding.</td>
+      <td>Proposed</td>
+    </tr>
+    <tr>
+      <td>Journal partnerships</td>
+      <td>Journals that want priority aggregation, enhanced reconcile frequency (hourly vs. daily), and direct editorial system integration.</td>
+      <td>Proposed</td>
+    </tr>
+    <tr>
+      <td>NSF / NIH grants</td>
+      <td>Gap detection supports open science, reproducibility, and research infrastructure goals — aligned with NSF FAIROS RCN, NIH data commons, and NLM programs. Actively pursuing.</td>
+      <td>In progress</td>
+    </tr>
+    <tr>
+      <td>Open Collective</td>
+      <td>Transparent community funding — income and expenses public. For contributors who want to support without a GitHub account.</td>
+      <td>Planned</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Grant alignment</h2>
+<p>
+  gitgap addresses several active grant priorities in the research infrastructure space:
+</p>
+<ul>
+  <li>
+    <strong>Open science infrastructure</strong> — NSF's FAIROS RCN (Findable, Accessible, Interoperable, Reusable Open Science) explicitly funds gap detection and knowledge graph infrastructure.
+  </li>
+  <li>
+    <strong>Research reproducibility</strong> — The rejected trail and pickup instructions directly support reproducibility by preserving what was tried, why it failed, and what the next attempt needs.
+  </li>
+  <li>
+    <strong>NIH NLM data commons</strong> — Gap detection from PMC literature aligns with NLM's mandate to make biomedical knowledge findable and actionable.
+  </li>
+  <li>
+    <strong>AI in research infrastructure</strong> — NAUGHT→CAUGHT→FOUND is a formalization of AI-assisted research discovery, which is an active area of interest for multiple funding bodies.
+  </li>
+</ul>
+
+<h2>What funding enables</h2>
+<p>
+  The current bottleneck is journal coverage — more journals means more gaps, more
+  convergence detection, more structural holes surfaced. Funding targets, in priority order:
+</p>
+<ol>
+  <li>Vector DB migration — scaling the similarity search from in-memory to pgvector or Qdrant (Phase 5)</li>
+  <li>Publisher API integrations — PLOS, Springer Nature, Europe PMC, Frontiers (Phase 5)</li>
+  <li>Hosted public instance — gitgap.io with managed reconcile and discovery probes</li>
+  <li>OAI-PMH crawler — automated discovery of OJS endpoints from DOAJ journal list</li>
+</ol>
+
+<h2>Contact</h2>
+<p>
+  For institutional partnerships, grant collaboration, or sponsorship inquiries,
+  contact Eric D. Martin — ORCID
+  <a href="https://orcid.org/0009-0006-5944-1742" target="_blank">0009-0006-5944-1742</a>.
+</p>
+{% endblock %}

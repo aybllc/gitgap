@@ -1,0 +1,155 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}API Ingest — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>API Ingest</h1>
+<p class="docs-lead">
+  Journals and research systems can push gaps to gitgap directly via API.
+  Two ingest directions: gitgap pulls from you (automated, preferred), or you push to gitgap
+  (for systems with their own gap-extraction capability).
+</p>
+
+<div class="docs-callout">
+  Full interactive API documentation is available at
+  <a href="/api/docs" target="_blank">/api/docs</a>.
+  The endpoints below are the primary integration points for external systems.
+</div>
+
+<h2>Authentication</h2>
+<p>
+  Push endpoints require an API key. Pass it in the request header:
+</p>
+<pre><code>X-API-Key: your-api-key-here</code></pre>
+<p>
+  To register for an API key, <a href="/docs/submit-journal">submit your journal</a>
+  and request API access in the notes field. Rate limit: 100 requests/minute.
+</p>
+
+<h2>Ingest by PMC ID</h2>
+<p>
+  The simplest ingest path — if the paper is in PubMed Central, provide the ID and
+  gitgap handles extraction.
+</p>
+<pre><code>POST /ingest/pmcid
+Content-Type: application/json
+X-API-Key: your-key
+
+{
+  "pmcid": "PMC9876543",
+  "catching_cosmoid": "optional-cosmoid-if-paper-is-catching-a-gap"
+}</code></pre>
+<p><strong>Returns:</strong> <code>{ "gap_ids": [42, 43], "paper_id": 91 }</code></p>
+
+<h2>Ingest from text (non-PMC papers)</h2>
+<p>
+  For preprints, Zenodo papers, institutional repository content, or any paper without
+  a PMC ID. Provide the text directly.
+</p>
+<pre><code>POST /ingest/from-text
+Content-Type: application/json
+X-API-Key: your-key
+
+{
+  "title": "Spatial indexing in criminal justice risk assessment",
+  "abstract_text": "This study examines... Future research should...",
+  "doi": "10.5281/zenodo.1234567",
+  "year": 2024,
+  "catching_cosmoid": "optional"
+}</code></pre>
+<p><strong>Returns:</strong> <code>{ "gap_ids": [44], "paper_id": 92 }</code></p>
+
+<h2>Pin a gap directly</h2>
+<p>
+  If your system has already identified a gap and you want to register it in the index
+  without running full extraction, pin it directly.
+</p>
+<pre><code>POST /gaps/pin
+Content-Type: application/json
+X-API-Key: your-key
+
+{
+  "declaration_text": "No study has examined the use of Morton encoding in predictive policing risk scores.",
+  "gateway_term": "Morton encoding",
+  "paper_pmcid": "PMC5777393",
+  "catching_cosmoid": "optional"
+}</code></pre>
+<p><strong>Returns:</strong></p>
+<pre><code>{
+  "id": 45,
+  "gateway_term": "Morton encoding",
+  "source_discipline": "computer_science",
+  "bridge_potential": 0.8,
+  "status": "naught"
+}</code></pre>
+
+<h2>Seal a gap (FOUND)</h2>
+<p>
+  When a paper addressing a gap is accepted or published, seal the lifecycle by calling
+  the found endpoint. This sets <code>found_at</code> and moves the gap to FOUND state.
+</p>
+<pre><code>POST /gaps/{gap_id}/found
+Content-Type: application/json
+X-API-Key: your-key
+
+{
+  "found_paper_cosmoid": "cosmo-uuid-here",
+  "found_paper_doi": "10.5281/zenodo.9876543"
+}</code></pre>
+
+<h2>Reject a gap attempt</h2>
+<p>
+  When a resolution attempt fails peer review, record the rejection. The pickup
+  instructions become public — this is the value of the rejected trail.
+</p>
+<pre><code>POST /gaps/{gap_id}/reject
+Content-Type: application/json
+X-API-Key: your-key
+
+{
+  "rejection_mode": "methodology",
+  "rejection_notes": "Internal editorial note (not public)",
+  "pickup_instructions": "Future attempts must address measurement validity using..."
+}</code></pre>
+
+<h2>Rejection modes</h2>
+<table class="docs-table">
+  <thead><tr><th>Mode</th><th>When to use</th></tr></thead>
+  <tbody>
+    <tr><td>methodology</td><td>The approach was flawed or inappropriate for the gap</td></tr>
+    <tr><td>scope</td><td>The paper didn't fully address the declared gap</td></tr>
+    <tr><td>insufficient_evidence</td><td>Claims made without adequate empirical support</td></tr>
+    <tr><td>theory_gap</td><td>Theoretical framework was missing or incomplete</td></tr>
+    <tr><td>duplicate</td><td>A paper already closed this gap</td></tr>
+    <tr><td>other</td><td>Use notes to specify</td></tr>
+  </tbody>
+</table>
+
+<h2>Search the gap index</h2>
+<p>No API key required for read endpoints.</p>
+<pre><code># Full-text search
+GET /gaps/search?q=Morton+encoding&limit=10&min_score=0.5
+
+# Structural holes (cross-discipline bridges)
+GET /gaps/structural-holes?source=computer_science&target=criminal_justice&min_bridge=0.6
+
+# Single gap
+GET /gaps/42
+
+# Bulk export (CSV)
+GET /gaps/export.csv?verdict=pass&term=spatial</code></pre>
+
+<h2>Webhook pattern (journal editorial systems)</h2>
+<p>
+  If your journal's editorial system auto-assigns DOIs on acceptance, you can wire a
+  webhook to seal the lifecycle automatically. On paper acceptance:
+</p>
+<ol>
+  <li>Your system calls <code>POST /gaps/{gap_id}/found</code> with the cosmoid and DOI</li>
+  <li>gitgap sets <code>found_at</code>, stores the DOI, moves the gap to FOUND</li>
+  <li>The globe updates on next load — the spike gains a gold ring</li>
+</ol>
+<p>
+  The <code>gap_id</code> is returned when the paper is first ingested (<code>gap_ids[0]</code>
+  from the ingest response) and should be stored in your editorial system at submission time.
+</p>
+{% endblock %}

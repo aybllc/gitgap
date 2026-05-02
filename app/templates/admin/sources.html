@@ -1,0 +1,200 @@
+{% extends "admin/base_admin.html" %}
+{% set admin_section = "sources" %}
+{% block title %}API Sources — Admin — gitgap{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+  <div class="page-title">API Sources</div>
+  <div class="page-sub">
+    Registered data providers. Credentials are read from env vars — values are never stored here.
+  </div>
+</div>
+
+<!-- Source list -->
+<div class="table-wrap" style="margin-bottom:40px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Slug</th>
+        <th>Format</th>
+        <th>Auth</th>
+        <th>Env Vars</th>
+        <th>Rate</th>
+        <th>Mappings</th>
+        <th>Journals</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sources %}
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <a href="/admin/sources/{{ s.id }}" style="font-weight:500; font-size:13px;">{{ s.name }}</a>
+            <a href="{{ s.base_url }}" target="_blank" rel="noopener"
+               title="{{ s.base_url }}"
+               style="font-size:11px; color:var(--ink-3); flex-shrink:0;">↗</a>
+          </div>
+          {% if s.notes %}
+          <div style="font-size:11px; color:var(--ink-3); max-width:260px; overflow:hidden;
+                      display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;">
+            {{ s.notes }}
+          </div>
+          {% endif %}
+        </td>
+        <td><code style="font-size:11px; color:var(--ink-3);">{{ s.slug }}</code></td>
+        <td style="font-size:12px; color:var(--ink-3);">{{ s.response_format }}</td>
+        <td style="font-size:12px; color:var(--ink-3);">{{ s.auth_type }}</td>
+        <td>
+          {% if s.api_key_env %}
+          <span style="font-size:11px; font-family:monospace;">
+            {{ s.api_key_env }}
+            {% if s.api_key_ok %}
+              <span style="color:#18A34A;" title="Set">✓</span>
+            {% else %}
+              <span style="color:#C0392B;" title="Missing">✗</span>
+            {% endif %}
+          </span><br>
+          {% endif %}
+          {% if s.email_env %}
+          <span style="font-size:11px; font-family:monospace;">
+            {{ s.email_env }}
+            {% if s.email_ok %}
+              <span style="color:#18A34A;" title="Set">✓</span>
+            {% else %}
+              <span style="color:#C0392B;" title="Missing">✗</span>
+            {% endif %}
+          </span>
+          {% endif %}
+          {% if not s.api_key_env and not s.email_env %}
+          <span style="color:var(--ink-3);">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:var(--ink-3);">{{ s.rate_limit_per_sec }}/s</td>
+        <td style="font-size:13px; text-align:center;">{{ s.mapping_count }}</td>
+        <td style="font-size:13px; text-align:center;">{{ s.journal_count }}</td>
+        <td>
+          {% if s.status == 'active' %}<span class="badge badge-pass">Active</span>
+          {% else %}<span class="badge badge-pending">{{ s.status }}</span>{% endif %}
+        </td>
+        <td>
+          <a href="/admin/sources/{{ s.id }}" class="btn btn-outline"
+             style="padding:3px 10px; font-size:12px;">Edit</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="10" style="text-align:center; color:var(--ink-3); padding:32px;">
+          No API sources registered.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add new source -->
+<div class="card" style="max-width:680px;">
+  <div class="card-title">Register New API Source</div>
+  <form method="post" action="/admin/sources" class="space-y-3"
+        style="display:flex; flex-direction:column; gap:14px;">
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+          Name *
+        </label>
+        <input type="text" name="name" required placeholder="PLOS API"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:13px; font-family:inherit;">
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+          Slug (unique) *
+        </label>
+        <input type="text" name="slug" required placeholder="plos"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:13px; font-family:monospace;">
+      </div>
+    </div>
+
+    <div>
+      <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+        Base URL *
+      </label>
+      <input type="url" name="base_url" required placeholder="https://api.example.org"
+             style="width:100%; border:1px solid var(--border); border-radius:6px;
+                    padding:7px 10px; font-size:13px; font-family:monospace;">
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+          Auth Type
+        </label>
+        <select name="auth_type"
+                style="width:100%; border:1px solid var(--border); border-radius:6px;
+                       padding:7px 10px; font-size:13px; font-family:inherit;">
+          {% for a in auth_types %}
+          <option value="{{ a }}">{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+          API Key Env Var
+        </label>
+        <input type="text" name="api_key_env" placeholder="MY_API_KEY"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:13px; font-family:monospace;">
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+          Email Env Var
+        </label>
+        <input type="text" name="email_env" placeholder="MY_EMAIL"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:13px; font-family:monospace;">
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+          Response Format
+        </label>
+        <select name="response_format"
+                style="width:100%; border:1px solid var(--border); border-radius:6px;
+                       padding:7px 10px; font-size:13px; font-family:inherit;">
+          {% for f in format_options %}
+          <option value="{{ f }}">{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+          Rate Limit (req/sec)
+        </label>
+        <input type="number" name="rate_limit" value="3.0" step="0.5" min="0.5"
+               style="width:100%; border:1px solid var(--border); border-radius:6px;
+                      padding:7px 10px; font-size:13px; font-family:inherit;">
+      </div>
+    </div>
+
+    <div>
+      <label style="display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-bottom:5px;">
+        Notes
+      </label>
+      <textarea name="notes" rows="2" placeholder="Setup instructions, docs URL, friction level…"
+                style="width:100%; border:1px solid var(--border); border-radius:6px;
+                       padding:7px 10px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary">Register Source</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

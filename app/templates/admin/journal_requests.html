@@ -1,0 +1,192 @@
+{% extends "admin/base_admin.html" %}
+{% set admin_section = "journal-requests" %}
+{% block title %}Journal Requests — Admin — gitgap{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+  <div class="page-title">Journal Requests</div>
+  <div class="page-sub">
+    Public submissions via /docs/submit-journal. Review, approve to add to the registry, or dismiss.
+  </div>
+</div>
+
+<!-- Status tabs -->
+<div style="display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:28px;">
+  {% for s, lbl in [('pending','Pending'), ('approved','Approved'), ('dismissed','Dismissed'), ('all','All')] %}
+  <a href="/admin/journal-requests?status={{ s }}"
+     style="display:inline-block; padding:8px 16px; font-size:13px; font-weight:500;
+            text-decoration:none; border-bottom:2px solid
+            {% if status_filter == s %}var(--accent){% else %}transparent{% endif %};
+            color:{% if status_filter == s %}var(--accent){% else %}var(--ink-3){% endif %};
+            margin-bottom:-1px;">
+    {{ lbl }}
+    {% if s != 'all' %}
+    <span style="font-size:11px; font-weight:400; color:var(--ink-3);
+                 background:var(--surface); border-radius:10px; padding:1px 6px;
+                 border:1px solid var(--border); margin-left:4px;">
+      {{ counts[s] }}
+    </span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Requests table -->
+{% if requests %}
+<div style="display:flex; flex-direction:column; gap:16px;">
+
+  {% for r in requests %}
+  <div class="card" style="padding:18px 20px;
+       {% if r.status == 'approved' %}opacity:0.7;{% endif %}
+       {% if r.status == 'dismissed' %}opacity:0.55;{% endif %}">
+
+    <!-- Row header -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;
+                gap:16px; flex-wrap:wrap; margin-bottom:10px;">
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:15px; font-weight:600; color:var(--ink);">
+          {{ r.journal_name }}
+        </div>
+        <div style="font-size:11px; color:var(--ink-3); margin-top:3px;">
+          Submitted {{ r.created_at[:10] }}
+          {% if r.issn %} · ISSN {{ r.issn }}{% endif %}
+          {% if r.contact_email %} · {{ r.contact_email }}{% endif %}
+        </div>
+      </div>
+      <div>
+        {% if r.status == 'pending' %}
+          <span class="badge badge-pending">Pending</span>
+        {% elif r.status == 'approved' %}
+          <span class="badge badge-pass">Approved</span>
+        {% elif r.status == 'dismissed' %}
+          <span class="badge badge-fail">Dismissed</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Detail fields -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+                gap:8px 20px; margin-bottom:12px;">
+      {% if r.url %}
+      <div>
+        <div style="font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+                    color:var(--ink-3); margin-bottom:2px;">URL</div>
+        <a href="{{ r.url }}" target="_blank" rel="noopener"
+           style="font-size:12px; font-family:monospace; word-break:break-all;
+                  color:var(--accent);">
+          {{ r.url[:60] }}{% if r.url|length > 60 %}…{% endif %}
+        </a>
+      </div>
+      {% endif %}
+      {% if r.oai_endpoint %}
+      <div>
+        <div style="font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+                    color:var(--ink-3); margin-bottom:2px;">OAI Endpoint</div>
+        <code style="font-size:11px; color:var(--ink-2); word-break:break-all;">
+          {{ r.oai_endpoint[:60] }}{% if r.oai_endpoint|length > 60 %}…{% endif %}
+        </code>
+      </div>
+      {% endif %}
+      {% if r.notes %}
+      <div style="grid-column:1/-1;">
+        <div style="font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+                    color:var(--ink-3); margin-bottom:2px;">Notes from requester</div>
+        <div style="font-size:13px; color:var(--ink-2); font-style:italic;">
+          {{ r.notes }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Actions (pending only) -->
+    {% if r.status == 'pending' %}
+    <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+
+      <!-- Dismiss -->
+      <form method="post" action="/admin/journal-requests/{{ r.id }}/dismiss" style="margin:0;">
+        <button type="submit" class="btn btn-outline"
+                style="font-size:12px; padding:4px 10px; color:#C0392B; border-color:#C0392B;">
+          Dismiss
+        </button>
+      </form>
+
+      <!-- Approve (inline expand) -->
+      {% if sources %}
+      <details style="flex:1;">
+        <summary class="btn btn-primary"
+                 style="font-size:12px; padding:4px 12px; cursor:pointer; list-style:none;
+                        display:inline-block;">
+          Approve →
+        </summary>
+        <div style="margin-top:12px; padding:14px; background:var(--surface);
+                    border:1px solid var(--border); border-radius:8px;">
+          <form method="post" action="/admin/journal-requests/{{ r.id }}/approve"
+                style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <label style="display:block; font-size:12px; font-weight:500;
+                            color:var(--ink-2); margin-bottom:4px;">API Source *</label>
+              <select name="source_id" required
+                      style="width:100%; max-width:340px; border:1px solid var(--border);
+                             border-radius:6px; padding:6px 10px; font-size:13px;
+                             font-family:inherit; background:var(--bg);">
+                {% for s in sources %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label style="display:block; font-size:12px; font-weight:500;
+                            color:var(--ink-2); margin-bottom:4px;">
+                Search Query
+                <span style="font-weight:400; color:var(--ink-3);">
+                  (auto-filled from journal name if blank)
+                </span>
+              </label>
+              <input type="text" name="search_query"
+                     placeholder='"{{ r.journal_name }}"[journal]'
+                     style="width:100%; max-width:480px; border:1px solid var(--border);
+                            border-radius:6px; padding:6px 10px; font-size:12px;
+                            font-family:monospace; background:var(--bg);">
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button type="submit" class="btn btn-primary" style="font-size:12px;">
+                Confirm Approve
+              </button>
+              <span style="font-size:11px; color:var(--ink-3);">
+                Creates a journal_registry entry with status=active.
+                Edit it afterwards to refine the search query or OAI endpoint.
+              </span>
+            </div>
+          </form>
+        </div>
+      </details>
+      {% else %}
+      <span style="font-size:12px; color:var(--ink-3); padding:4px 0;">
+        Add an API source first before approving.
+      </span>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
+  </div>
+  {% endfor %}
+
+</div>
+{% else %}
+<div style="text-align:center; padding:60px 0; color:var(--ink-3);">
+  <div style="font-size:32px; margin-bottom:12px;">✓</div>
+  <div style="font-size:15px; font-weight:500; color:var(--ink-2); margin-bottom:6px;">
+    No
+    {% if status_filter == 'all' %}requests{% else %}{{ status_filter }} requests{% endif %}
+  </div>
+  <div style="font-size:13px;">
+    Public submissions via
+    <a href="/docs/submit-journal" target="_blank"
+       style="color:var(--accent);">/docs/submit-journal</a>
+    appear here.
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

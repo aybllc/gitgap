@@ -1,0 +1,117 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Open Source — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Open Source</h1>
+<p class="docs-lead">
+  gitgap is MIT-licensed. The full gap detection pipeline, lifecycle management,
+  globe visualization, and API are open source and self-hostable.
+</p>
+
+<h2>License</h2>
+<p>
+  MIT License — permissive, allows institutional forks, commercial wrappers, and
+  academic modifications without restriction. Attribution is required.
+</p>
+
+<h2>Repository</h2>
+<p>
+  Source code is hosted at GitHub under the
+  <a href="https://github.com/aybllc" target="_blank">aybllc</a> organization.
+  The gap detection pipeline and eaiou authoring layer are separate repositories —
+  eaiou is governed independently.
+</p>
+
+<h2>Self-hosting</h2>
+
+<h3>Requirements</h3>
+<ul>
+  <li>Python 3.11+</li>
+  <li>SQLite (default, zero config) or PostgreSQL</li>
+  <li>An OpenAI-compatible API key (for gap extraction LLM calls)</li>
+  <li>Optional: NCBI API key for higher PMC rate limits</li>
+</ul>
+
+<h3>Quickstart</h3>
+<pre><code>git clone https://github.com/aybllc/gitgap
+cd gitgap
+cp .env.example .env
+# Edit .env — add OPENAI_API_KEY at minimum
+pip install -r requirements.txt
+uvicorn app.main:app --reload</code></pre>
+<p>
+  The database is created automatically on first run. Navigate to
+  <code>http://localhost:8000</code> to start.
+</p>
+
+<h3>Docker</h3>
+<pre><code>docker-compose up</code></pre>
+<p>
+  The default compose file includes the app and a data volume for SQLite persistence.
+  For production, set <code>DATABASE_URL</code> to a PostgreSQL connection string in
+  <code>.env</code>.
+</p>
+
+<h3>Environment variables</h3>
+<table class="docs-table">
+  <thead>
+    <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>OPENAI_API_KEY</td><td>Yes</td><td>LLM API key for gap extraction and embedding</td></tr>
+    <tr><td>DATABASE_URL</td><td>No</td><td>SQLite (default) or PostgreSQL connection string</td></tr>
+    <tr><td>NCBI_API_KEY</td><td>No</td><td>Higher PMC rate limits (10/sec vs 3/sec)</td></tr>
+    <tr><td>GITGAP_API_KEY</td><td>No</td><td>Master API key for push endpoints (auto-generated if not set)</td></tr>
+    <tr><td>EAIOU_API_URL</td><td>No</td><td>eaiou instance URL for wheelhouse rescore webhook</td></tr>
+    <tr><td>EAIOU_MASTER_API_KEY</td><td>No</td><td>eaiou API key for internal webhooks</td></tr>
+  </tbody>
+</table>
+
+<h2>Contributing</h2>
+<p>
+  Contributions are welcome. The highest-impact areas:
+</p>
+<ul>
+  <li>
+    <strong>Keeper review quality</strong> — improving the gap extraction classifier reduces the keeper review burden.
+    The classifier lives in <code>app/ingest/classify.py</code>.
+  </li>
+  <li>
+    <strong>OAI-PMH harvesting</strong> — the harvester in <code>app/ingest/</code> needs per-format parsers
+    for journals that use extended Dublin Core or custom OAI schemas.
+  </li>
+  <li>
+    <strong>Publisher API clients</strong> — PLOS, Springer Nature, Europe PMC clients in <code>app/ingest/</code>.
+    Each source has a registered entry in <code>api_sources</code> — clients implement the corresponding slug.
+  </li>
+  <li>
+    <strong>Globe performance</strong> — Three.js rendering for 1K+ gaps.
+    Globe code is in <code>app/templates/globe.html</code>.
+  </li>
+</ul>
+
+<h3>Pull request process</h3>
+<ol>
+  <li>Fork the repository</li>
+  <li>Create a branch — <code>feature/your-feature</code> or <code>fix/your-fix</code></li>
+  <li>Write tests if adding pipeline logic</li>
+  <li>Submit PR against <code>main</code></li>
+  <li>PRs are reviewed within 48 hours</li>
+</ol>
+
+<h2>What stays proprietary</h2>
+<p>
+  Nothing in the gap detection pipeline. The eaiou authoring layer (author workspace,
+  editorial workflow, Q scoring) is a separate project governed independently — but its
+  API contract with gitgap is documented in <a href="/docs/api-ingest">API Ingest</a>.
+</p>
+
+<h2>Code of conduct</h2>
+<p>
+  gitgap uses the
+  <a href="https://www.contributor-covenant.org/version/2/1/code_of_conduct/" target="_blank">
+    Contributor Covenant v2.1
+  </a>.
+  The short version: be constructive, assume good intent, don't be hostile.
+</p>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "docs/base_docs.html" %}
+{% block title %}Origin — gitgap{% endblock %}
+
+{% block docs_content %}
+<h1>Origin</h1>
+<p class="docs-lead">
+  Journals are identity-first. gitgap is intelligence-first. These are opposite stances —
+  but they fit natively, because journals create gaps every day and never track them.
+</p>
+
+<h2>What journals do</h2>
+<p>
+  A journal is a trust machine built on one assumption: <em>identity is the only reliable
+  signal at scale.</em> You submit to a journal. The journal's name is the trust container.
+  Work doesn't exist credibly until a named journal accepts it.
+</p>
+<p>
+  Every mechanism in the journal system flows from that axiom. Peer review is gatekeeping
+  for brand protection. Rejection is terminal and invisible — the attempt evaporates. When
+  a paper is rejected, the community learns nothing. The gap the paper was attempting to
+  close remains open. The effort is gone.
+</p>
+<p>
+  The gap declarations themselves — the "future research should address X" sentences in
+  every discussion section — have no operational consequence inside the journal system.
+  They are written, published, and forgotten. No journal tracks the gaps it helps declare.
+</p>
+
+<h2>What gitgap does instead</h2>
+<p>
+  gitgap tracks what was declared unresolved, and whether anyone has addressed it yet.
+  Identity is not in the index. The declaration either is or isn't a gap. The gateway
+  term either spans disciplines or it doesn't.
+</p>
+
+<table class="docs-table">
+  <thead>
+    <tr>
+      <th>Dimension</th>
+      <th>Journals</th>
+      <th>gitgap</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Trust signal</td>
+      <td>Who you are — affiliation, institution, prior publications</td>
+      <td>What it says — declaration text, gateway term, confidence</td>
+    </tr>
+    <tr>
+      <td>Rejection</td>
+      <td>Terminal, invisible, not preserved</td>
+      <td>Preserved trail — mode, notes, pickup instructions</td>
+    </tr>
+    <tr>
+      <td>Gap declaration</td>
+      <td>Noise in the discussion section</td>
+      <td>Signal — indexed, matched, tracked across papers</td>
+    </tr>
+    <tr>
+      <td>Old unresolved gaps</td>
+      <td>Treated as unsolvable</td>
+      <td>Gap age amplifies relevance — a compounding opportunity</td>
+    </tr>
+    <tr>
+      <td>Disciplinary boundary</td>
+      <td>Enforced silo — one journal per field</td>
+      <td>Bridge potential — structural holes are highest-value entries</td>
+    </tr>
+    <tr>
+      <td>AI authorship</td>
+      <td>Structurally disadvantaged — no institutional affiliation</td>
+      <td>Equal standing — declaration quality is the only check</td>
+    </tr>
+    <tr>
+      <td>Publication</td>
+      <td>Endpoint — journal's obligation ends at publication</td>
+      <td>Data point — one state in a longer lifecycle</td>
+    </tr>
+    <tr>
+      <td>Failure</td>
+      <td>Hidden</td>
+      <td>Instructive — the rejected trail shows where and why</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>How they're opposite</h2>
+<p>
+  The identity system says: <em>who are you, then your work is valid.</em>
+</p>
+<p>
+  The intelligence system says: <em>what does this text declare, and is it a clear gap.</em>
+</p>
+<p>
+  These are opposite epistemological stances. Journals were built for a world where
+  identity was the only scalable trust proxy. gitgap was built for a world where text is
+  computable. This means gitgap can do things the identity system structurally cannot:
+</p>
+<ul>
+  <li>An AI agent with no institutional affiliation can catch and close gaps — no affiliation check.</li>
+  <li>A gap from an obscure open-access journal has equal standing to one from a high-impact journal if the declaration is clean.</li>
+  <li>A 20-year-old unresolved gap is not a failure. It is a gap that has been appreciated for 20 years without resolution — the age is the signal.</li>
+  <li>A CS technique that solves a psychology problem is a structural hole — the highest-value entry in the index. The journal system created the silo. gitgap indexes the gap that spans it.</li>
+</ul>
+
+<h2>Why gitgap fits natively</h2>
+<p>
+  gitgap is not competing with journals. It is completing the infrastructure journals
+  never built.
+</p>
+<p>
+  Journals create gaps every day — in every discussion section, every limitations
+  paragraph, every "future work" sentence. Journals never track those gaps. They have
+  no mechanism to. The gap exits the journal at publication and disappears.
+</p>
+<p>
+  gitgap watches what journals produce and indexes the gaps they couldn't follow up on.
+  The journal's output feeds gitgap without any change to how journals operate.
+</p>
+<p>
+  A journal publishes paper X → X declares gaps in its discussion section → gitgap
+  harvests the paper via PMC or OAI-PMH → gaps are extracted and indexed → researchers
+  using gitgap find the gap → submit papers addressing it → back to the journal that
+  originally declared it. A closed loop that journals are already part of without knowing it.
+</p>
+
+<div class="docs-callout">
+  <strong>Pioneering intelligence over identity</strong><br>
+  The journal system is a 350-year-old trust proxy built on one assumption: identity is
+  the only reliable signal at scale. That assumption held until text became computable.
+  gitgap is the first gap-tracking infrastructure to operate on the opposite assumption:
+  the declaration is the signal, not the declarer.
+</div>
+
+<h2>Author note</h2>
+<p>
+  gitgap was created by Eric D. Martin ·
+  <a href="https://orcid.org/0009-0006-5944-1742" target="_blank">ORCID 0009-0006-5944-1742</a>.
+  The NAUGHT → CAUGHT → FOUND lifecycle is a formalization of how the topology of missing
+  knowledge actually behaves — not as a void, but as a structured, appreciating, resolvable set.
+</p>
+{% endblock %}
