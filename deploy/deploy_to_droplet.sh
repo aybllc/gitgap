@@ -163,12 +163,13 @@ ok "TLS issued + redirect installed"
 # ─── 8. ACL for nginx static reads ────────────────────────────────────────────
 say "Step 8/9: setfacl for www-data static reads"
 ssh_run_stdin <<EOF
+set -euo pipefail
 setfacl -m u:www-data:--x /home/${APP_USER}
 setfacl -m u:www-data:--x ${APP_DIR}
-[ -d ${APP_DIR}/${APP_VARIANT}/static ] && {
+if [ -d ${APP_DIR}/${APP_VARIANT}/static ]; then
     setfacl -R -m u:www-data:rX ${APP_DIR}/${APP_VARIANT}/static
     setfacl -R -d -m u:www-data:rX ${APP_DIR}/${APP_VARIANT}/static
-}
+fi
 EOF
 ok "ACLs applied"
 
